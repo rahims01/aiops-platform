@@ -68,7 +68,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #d0d7de; col
 docker compose down                             # Stop dev server
 docker compose run --rm app npm run lint        # ESLint (next/core-web-vitals + next/typescript)
 docker compose run --rm app npx tsc --noEmit    # Type-check only (no build)
-docker compose run --rm app npm run build       # Production build (output: standalone)
+docker compose run --rm -e NODE_ENV=production app npm run build   # Production build (output: standalone)
 docker compose run --rm app npm run docs        # Regenerate HTML docs in docs/ from the .md files
 
 docker compose -f docker-compose.prod.yml up --build -d   # Production server (standalone)
@@ -138,6 +138,7 @@ docker compose -f docker-compose.prod.yml up --build -d   # Production server (s
 <li>No test framework configured yet</li>
 <li>Port 3000 in use: <code>lsof -ti:3000 | xargs kill -9</code>, or change the host port mapping in <code>docker-compose.yml</code> (e.g. <code>&quot;3001:3000&quot;</code>)</li>
 <li>Type errors after adding types: run <code>docker compose run --rm app npx tsc --noEmit</code></li>
+<li><code>next build</code> fails on <code>/_global-error</code> (<code>useContext</code> null): the dev <code>app</code> service sets <code>NODE_ENV=development</code> — build with <code>-e NODE_ENV=production</code> or use <code>docker-compose.prod.yml</code></li>
 <li>Docker build fails on <code>npm ci</code>: ensure <code>package-lock.json</code> is committed</li>
 <li>Tailwind styles not applying: verify <code>@import &quot;tailwindcss&quot;;</code> in globals.css, restart the container (<code>docker compose restart app</code>)</li>
 <li>Code changes not reflected in container: ensure volume mounts are intact; rebuild with <code>docker compose up --build</code></li>

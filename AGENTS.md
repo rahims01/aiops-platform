@@ -11,7 +11,7 @@ docker compose up --build                       # Start dev server (localhost:30
 docker compose down                             # Stop dev server
 docker compose run --rm app npm run lint        # ESLint (next/core-web-vitals + next/typescript)
 docker compose run --rm app npx tsc --noEmit    # Type-check only (no build)
-docker compose run --rm app npm run build       # Production build (output: standalone)
+docker compose run --rm -e NODE_ENV=production app npm run build   # Production build (output: standalone)
 docker compose run --rm app npm run docs        # Regenerate HTML docs in docs/ from the .md files
 
 docker compose -f docker-compose.prod.yml up --build -d   # Production server (standalone)
@@ -81,6 +81,7 @@ All development data lives here. Import types from `./types`. Add new mock data 
 - No test framework configured yet
 - Port 3000 in use: `lsof -ti:3000 | xargs kill -9`, or change the host port mapping in `docker-compose.yml` (e.g. `"3001:3000"`)
 - Type errors after adding types: run `docker compose run --rm app npx tsc --noEmit`
+- `next build` fails on `/_global-error` (`useContext` null): the dev `app` service sets `NODE_ENV=development` — build with `-e NODE_ENV=production` or use `docker-compose.prod.yml`
 - Docker build fails on `npm ci`: ensure `package-lock.json` is committed
 - Tailwind styles not applying: verify `@import "tailwindcss";` in globals.css, restart the container (`docker compose restart app`)
 - Code changes not reflected in container: ensure volume mounts are intact; rebuild with `docker compose up --build`

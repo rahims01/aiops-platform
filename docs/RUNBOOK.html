@@ -146,8 +146,12 @@ docker compose -f docker-compose.prod.yml logs -f app     # Tail logs
 </code></pre>
 <p>This builds the multi-stage <code>Dockerfile</code> (standalone output) and includes a health check on port 3000.</p>
 <h3>Manual build &amp; run (produces the standalone output)</h3>
-<pre><code class="language-bash">docker compose run --rm app npm run build       # Creates standalone output in .next/standalone
+<p>The <code>app</code> (dev) service sets <code>NODE_ENV=development</code>, but <code>next build</code> <strong>must</strong> run with <code>NODE_ENV=production</code> — otherwise prerendering fails (e.g. <code>/_global-error: Cannot read properties of null (reading &#39;useContext&#39;)</code>). Override it:</p>
+<pre><code class="language-bash">docker compose run --rm -e NODE_ENV=production app npm run build   # Standalone output in .next/standalone
 </code></pre>
+<blockquote>
+<p>For a real production run, prefer <code>docker compose -f docker-compose.prod.yml up --build</code> — its multi-stage <code>Dockerfile</code> builds with the correct env automatically.</p>
+</blockquote>
 <p><strong>Output structure:</strong></p>
 <pre><code>.next/
 ├── standalone/
@@ -269,7 +273,7 @@ NEXT_PUBLIC_WS_URL=ws://localhost:3001
 <td>Stop dev server</td>
 </tr>
 <tr>
-<td><code>docker compose run --rm app npm run build</code></td>
+<td><code>docker compose run --rm -e NODE_ENV=production app npm run build</code></td>
 <td>Production build (standalone output)</td>
 </tr>
 <tr>
@@ -425,6 +429,12 @@ lsof -ti:3000 | xargs kill -9
 <pre><code class="language-bash"># Restart TS server in editor (VS Code: Cmd+Shift+P → &quot;TypeScript: Restart TS Server&quot;)
 # Or type-check in the container
 docker compose run --rm app npx tsc --noEmit
+</code></pre>
+<h3>Build fails on <code>/_global-error</code> with &quot;Cannot read properties of null (reading &#39;useContext&#39;)&quot;</h3>
+<p>The dev <code>app</code> service sets <code>NODE_ENV=development</code>, which breaks <code>next build</code>. Build with production env:</p>
+<pre><code class="language-bash">docker compose run --rm -e NODE_ENV=production app npm run build
+# or use the prod stack, which sets it correctly:
+docker compose -f docker-compose.prod.yml up --build
 </code></pre>
 <h3>Docker build fails on <code>npm ci</code></h3>
 <pre><code class="language-bash"># Ensure package-lock.json is committed

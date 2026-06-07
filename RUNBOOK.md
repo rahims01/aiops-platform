@@ -93,9 +93,13 @@ This builds the multi-stage `Dockerfile` (standalone output) and includes a heal
 
 ### Manual build & run (produces the standalone output)
 
+The `app` (dev) service sets `NODE_ENV=development`, but `next build` **must** run with `NODE_ENV=production` — otherwise prerendering fails (e.g. `/_global-error: Cannot read properties of null (reading 'useContext')`). Override it:
+
 ```bash
-docker compose run --rm app npm run build       # Creates standalone output in .next/standalone
+docker compose run --rm -e NODE_ENV=production app npm run build   # Standalone output in .next/standalone
 ```
+
+> For a real production run, prefer `docker compose -f docker-compose.prod.yml up --build` — its multi-stage `Dockerfile` builds with the correct env automatically.
 
 **Output structure:**
 ```
@@ -202,7 +206,7 @@ All commands run through Docker. The underlying npm scripts live in `package.jso
 |---------|-------------|
 | `docker compose up --build` | Start dev server (Turbopack, HMR) |
 | `docker compose down` | Stop dev server |
-| `docker compose run --rm app npm run build` | Production build (standalone output) |
+| `docker compose run --rm -e NODE_ENV=production app npm run build` | Production build (standalone output) |
 | `docker compose run --rm app npm run lint` | Run ESLint (core-web-vitals + typescript) |
 | `docker compose run --rm app npx tsc --noEmit` | Type-check only (no build) |
 | `docker compose run --rm app npm run docs` | Regenerate HTML docs in `docs/` from the `.md` files |
@@ -371,6 +375,14 @@ lsof -ti:3000 | xargs kill -9
 # Restart TS server in editor (VS Code: Cmd+Shift+P → "TypeScript: Restart TS Server")
 # Or type-check in the container
 docker compose run --rm app npx tsc --noEmit
+```
+
+### Build fails on `/_global-error` with "Cannot read properties of null (reading 'useContext')"
+The dev `app` service sets `NODE_ENV=development`, which breaks `next build`. Build with production env:
+```bash
+docker compose run --rm -e NODE_ENV=production app npm run build
+# or use the prod stack, which sets it correctly:
+docker compose -f docker-compose.prod.yml up --build
 ```
 
 ### Docker build fails on `npm ci`
