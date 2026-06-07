@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Memory · AIOps Platform Docs</title>
+<style>
+:root { color-scheme: light dark; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.65; color: #1f2328; background: #ffffff;
+}
+.wrap { max-width: 860px; margin: 0 auto; padding: 2.5rem 1.25rem 5rem; }
+.topbar { font-size: .85rem; margin-bottom: 2rem; }
+.topbar a { color: #6366f1; text-decoration: none; }
+.topbar a:hover { text-decoration: underline; }
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; margin-top: 1.8em; margin-bottom: .6em; }
+h1 { font-size: 2rem; border-bottom: 1px solid #d0d7de; padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.45rem; border-bottom: 1px solid #d0d7de; padding-bottom: .3em; }
+h3 { font-size: 1.2rem; }
+p, ul, ol, table, blockquote, pre { margin: 0 0 1rem; }
+a { color: #6366f1; }
+code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace; font-size: .88em;
+  background: rgba(99,102,241,.1); padding: .15em .4em; border-radius: 6px;
+}
+pre {
+  background: #0d1117; color: #e6edf3; padding: 1rem 1.15rem; border-radius: 10px;
+  overflow-x: auto; font-size: .85rem; line-height: 1.5;
+}
+pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+blockquote {
+  border-left: 4px solid #6366f1; background: rgba(99,102,241,.06);
+  margin-left: 0; padding: .5rem 1rem; color: #4b5563; border-radius: 0 8px 8px 0;
+}
+table { border-collapse: collapse; width: 100%; display: block; overflow-x: auto; }
+th, td { border: 1px solid #d0d7de; padding: .5rem .75rem; text-align: left; }
+th { background: rgba(99,102,241,.08); font-weight: 600; }
+tr:nth-child(even) td { background: rgba(0,0,0,.02); }
+hr { border: none; border-top: 1px solid #d0d7de; margin: 2rem 0; }
+img { max-width: 100%; }
+ul.doc-index { list-style: none; padding: 0; }
+ul.doc-index li { margin: 0 0 .75rem; }
+ul.doc-index a { font-size: 1.1rem; font-weight: 600; text-decoration: none; }
+ul.doc-index .file { color: #6b7280; font-weight: 400; font-size: .85rem; margin-left: .5rem; }
+footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #d0d7de; color: #6b7280; font-size: .8rem; }
+@media (prefers-color-scheme: dark) {
+  body { color: #e6edf3; background: #0a0a0a; }
+  h1, h2, hr { border-color: #30363d; }
+  th, td { border-color: #30363d; }
+  th { background: rgba(99,102,241,.15); }
+  tr:nth-child(even) td { background: rgba(255,255,255,.03); }
+  blockquote { color: #9ca3af; }
+  .topbar a, a { color: #818cf8; }
+  footer { border-color: #30363d; color: #9ca3af; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="topbar"><a href="index.html">← All docs</a></nav>
+<h1>Memory — persistent session context</h1>
+<h2>Project decisions</h2>
+<ul>
+<li>Using Next.js 16 App Router with React 19, TypeScript, Tailwind CSS v4</li>
+<li>Path alias <code>@/*</code> maps to <code>./src/*</code></li>
+<li>All types in <code>src/lib/types.ts</code> — extend these, don&#39;t duplicate</li>
+<li>All mock data in <code>src/lib/mock-data.ts</code> — import types from <code>./types</code></li>
+<li>Client components use <code>&#39;use client&#39;</code> directive</li>
+<li>Navigation uses <code>usePathname()</code> from <code>next/navigation</code> for active state</li>
+<li>Icons from <code>lucide-react</code> (tree-shake imports)</li>
+<li>Class merging via <code>cn()</code> from <code>src/lib/utils.ts</code> (clsx + tailwind-merge)</li>
+<li>Status colors via <code>getStatusColor()</code>, <code>getSeverityColor()</code>, <code>getRiskColor()</code> from utils</li>
+<li>Dark mode via <code>dark:</code> variants; globals.css uses CSS variables</li>
+</ul>
+<h2>Conventions</h2>
+<ul>
+<li>ESLint extends <code>eslint-config-next/core-web-vitals</code> + <code>eslint-config-next/typescript</code></li>
+<li>Strict TS: <code>strict: true</code>, <code>noEmit: true</code>, <code>isolatedModules: true</code></li>
+<li>All commands run inside Docker containers (not on the host)</li>
+<li>Run <code>docker compose run --rm app npm run lint</code> before committing</li>
+<li>No test framework configured yet</li>
+<li>Environment variables: <code>.env*</code> ignored (add <code>.env.example</code> if needed)</li>
+</ul>
+<h2>Gotchas</h2>
+<ul>
+<li>Next.js 16 has breaking changes — check <code>node_modules/next/dist/docs/</code> for current APIs</li>
+<li>Cert expiry days in mock data drive failure predictions — update together</li>
+<li>Axway ST API rate limits: throttle at &gt;60 req/min, batch queries in pages of 100</li>
+<li>OAuth2 tokens expire — implement automatic refresh with retry logic</li>
+</ul>
+<h2>Commands &amp; shortcuts (all via Docker)</h2>
+<pre><code class="language-bash">docker compose up --build                       # Start dev server (localhost:3000, HMR)
+docker compose down                             # Stop dev server
+docker compose run --rm app npm run build       # Production build (output: standalone)
+docker compose run --rm app npm run lint        # ESLint
+docker compose run --rm app npx tsc --noEmit    # Type-check only
+docker compose -f docker-compose.prod.yml up --build -d   # Production server
+</code></pre>
+<h2>Architecture notes</h2>
+<ul>
+<li><strong>App Router</strong> in <code>src/app/</code> — pages, layouts, globals.css</li>
+<li><strong>Components</strong> in <code>src/components/</code> — client components (Sidebar, etc.)</li>
+<li><strong>Lib</strong> in <code>src/lib/</code> — utilities, types, mock data</li>
+</ul>
+<h2>Navigation structure (from Sidebar)</h2>
+<ul>
+<li><code>/</code> — Health Overview (Dashboard)</li>
+<li><code>/incidents</code> — Incident Timeline</li>
+<li><code>/ml-insights</code> — ML Insights</li>
+<li><code>/sla-trends</code> — SLA &amp; Trends</li>
+</ul>
+<h2>Mock data available</h2>
+<ul>
+<li><code>mockTransfers</code> — TransferEvent[]</li>
+<li><code>mockIncidents</code> — CorrelatedIncident[]</li>
+<li><code>mockNodeHealth</code> — NodeHealth[]</li>
+<li><code>mockAnomalyScores</code> — AnomalyScore[]</li>
+<li><code>mockFailurePredictions</code> — FailurePrediction[]</li>
+<li><code>mockBaselineData</code> — BaselineData[]</li>
+<li><code>mockRootCauses</code> — RootCauseCandidate[]</li>
+<li><code>mockAlerts</code> — Alert[]</li>
+<li><code>mockMetricCards</code> — MetricCard[]</li>
+<li><code>mockErrorCodes</code> — ErrorCodeDistribution[]</li>
+<li><code>mockAccountHealth</code> — AccountHealth[]</li>
+<li><code>mockMTTRData</code> — { week, mttr_minutes }[]</li>
+<li><code>mockVolumeTrend</code> — { date, volume }[]</li>
+</ul>
+
+<footer>Generated from Markdown by <code>scripts/build-docs.mjs</code> — run <code>docker compose run --rm app npm run docs</code> to rebuild.</footer>
+</div>
+</body>
+</html>

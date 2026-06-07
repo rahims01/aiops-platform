@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Platform Design · AIOps Platform Docs</title>
+<style>
+:root { color-scheme: light dark; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.65; color: #1f2328; background: #ffffff;
+}
+.wrap { max-width: 860px; margin: 0 auto; padding: 2.5rem 1.25rem 5rem; }
+.topbar { font-size: .85rem; margin-bottom: 2rem; }
+.topbar a { color: #6366f1; text-decoration: none; }
+.topbar a:hover { text-decoration: underline; }
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; margin-top: 1.8em; margin-bottom: .6em; }
+h1 { font-size: 2rem; border-bottom: 1px solid #d0d7de; padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.45rem; border-bottom: 1px solid #d0d7de; padding-bottom: .3em; }
+h3 { font-size: 1.2rem; }
+p, ul, ol, table, blockquote, pre { margin: 0 0 1rem; }
+a { color: #6366f1; }
+code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace; font-size: .88em;
+  background: rgba(99,102,241,.1); padding: .15em .4em; border-radius: 6px;
+}
+pre {
+  background: #0d1117; color: #e6edf3; padding: 1rem 1.15rem; border-radius: 10px;
+  overflow-x: auto; font-size: .85rem; line-height: 1.5;
+}
+pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+blockquote {
+  border-left: 4px solid #6366f1; background: rgba(99,102,241,.06);
+  margin-left: 0; padding: .5rem 1rem; color: #4b5563; border-radius: 0 8px 8px 0;
+}
+table { border-collapse: collapse; width: 100%; display: block; overflow-x: auto; }
+th, td { border: 1px solid #d0d7de; padding: .5rem .75rem; text-align: left; }
+th { background: rgba(99,102,241,.08); font-weight: 600; }
+tr:nth-child(even) td { background: rgba(0,0,0,.02); }
+hr { border: none; border-top: 1px solid #d0d7de; margin: 2rem 0; }
+img { max-width: 100%; }
+ul.doc-index { list-style: none; padding: 0; }
+ul.doc-index li { margin: 0 0 .75rem; }
+ul.doc-index a { font-size: 1.1rem; font-weight: 600; text-decoration: none; }
+ul.doc-index .file { color: #6b7280; font-weight: 400; font-size: .85rem; margin-left: .5rem; }
+footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #d0d7de; color: #6b7280; font-size: .8rem; }
+@media (prefers-color-scheme: dark) {
+  body { color: #e6edf3; background: #0a0a0a; }
+  h1, h2, hr { border-color: #30363d; }
+  th, td { border-color: #30363d; }
+  th { background: rgba(99,102,241,.15); }
+  tr:nth-child(even) td { background: rgba(255,255,255,.03); }
+  blockquote { color: #9ca3af; }
+  .topbar a, a { color: #818cf8; }
+  footer { border-color: #30363d; color: #9ca3af; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="topbar"><a href="index.html">← All docs</a></nav>
+<h1>AIOps Platform for Axway SecureTransport</h1>
+<h2>Overview</h2>
+<p>Design an AIOps platform that monitors Axway SecureTransport (ST) file transfer infrastructure, correlates events with ServiceNow incidents, and uses ML-driven analytics to predict failures, reduce MTTR, and automate remediation.</p>
+<hr>
+<h2>Data Sources</h2>
+<h3>Axway ST API</h3>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Purpose</th>
+<th>Polling</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/api/v1.0/transfers</code></td>
+<td>File transfer records (status, size, duration, source/target)</td>
+<td>Every 60s</td>
+</tr>
+<tr>
+<td><code>/api/v1.0/steams</code></td>
+<td>Server/application logs and metrics</td>
+<td>Every 60s</td>
+</tr>
+<tr>
+<td><code>/api/v1.0/accounts</code></td>
+<td>User and partner account state</td>
+<td>Every 5min</td>
+</tr>
+<tr>
+<td><code>/api/v1.0/health</code></td>
+<td>Node health, disk, queue depth, certificates</td>
+<td>Every 30s</td>
+</tr>
+<tr>
+<td><code>/api/v1.0/performance</code></td>
+<td>Throughput, latency, error rates</td>
+<td>Every 60s</td>
+</tr>
+</tbody></table>
+<p>Authentication: Basic Auth or OAuth2 (bearer token). Prefer OAuth2 with short-lived tokens.</p>
+<h3>ServiceNow API</h3>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Purpose</th>
+<th>Polling</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>incident</code></td>
+<td>Active and resolved incidents</td>
+<td>Every 2min</td>
+</tr>
+<tr>
+<td><code>change_request</code></td>
+<td>Planned maintenance / changes</td>
+<td>Every 5min</td>
+</tr>
+<tr>
+<td><code>problem</code></td>
+<td>Root-cause problem records</td>
+<td>Every 5min</td>
+</tr>
+<tr>
+<td><code>cmdb_ci</code></td>
+<td>Axway ST CI configuration items</td>
+<td>Daily sync</td>
+</tr>
+</tbody></table>
+<p>Authentication: Basic Auth (user/password) or OAuth2 with <code>X-UserToken</code>.</p>
+<hr>
+<h2>Architecture</h2>
+<pre><code>┌──────────────┐    ┌──────────────┐
+│  Axway ST    │    │  ServiceNow  │
+│  API Layer   │    │  API Layer   │
+└──────┬───────┘    └──────┬───────┘
+       │                   │
+       ▼                   ▼
+┌──────────────────────────────────────┐
+│         Data Ingestion Layer         │
+│  - Collectors (ST metrics, events)   │
+│  - Webhooks (real-time alerts)       │
+│  - ServiceNow poller                 │
+│  - Message queue (Kafka / RabbitMQ)  │
+└──────────────┬───────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────┐
+│         Processing / Enrichment      │
+│  - Normalize &amp; dedup events          │
+│  - Correlate ST failures ↔ SNOW     │
+│  - Enrich with CMDB context          │
+│  - Windowed aggregations             │
+└──────────────┬───────────────────────┘
+               │
+       ┌───────┴───────┐
+       ▼               ▼
+┌──────────────┐ ┌──────────────────────┐
+│   Storage    │ │   ML / Analytics     │
+│ - TSDB       │ │ - Anomaly detection  │
+│ - ES / OP    │ │ - Failure prediction │
+│ - RDBMS      │ │ - Root-cause score   │
+│ - S3/blob    │ │ - Baseline modeling  │
+└──────┬───────┘ └──────────┬───────────┘
+       │                    │
+       ▼                    ▼
+┌──────────────────────────────────────┐
+│         AIOps Engine                 │
+│  - Policy engine (alert rules)       │
+│  - Incident auto-creation (SNOW)     │
+│  - Runbook automation                │
+│  - Pager / Slack / Teams routing     │
+└──────────────┬───────────────────────┘
+               │
+               ▼
+┌──────────────────────────────────────┐
+│         Visualization / UI           │
+│  - Grafana dashboards                │
+│  - ST health overview                │
+│  - Incident timeline                 │
+│  - ML model insights                 │
+│  - SLO / SLA tracking                │
+└──────────────────────────────────────┘
+</code></pre>
+<h3>Component Stack (recommended)</h3>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Tool</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Message queue</td>
+<td>Kafka</td>
+<td>Durability, replay, partitioning</td>
+</tr>
+<tr>
+<td>Stream processing</td>
+<td>Flink or Kafka Streams</td>
+<td>Windowed joins, enrichment</td>
+</tr>
+<tr>
+<td>TSDB</td>
+<td>VictoriaMetrics or Prometheus</td>
+<td>Lightweight, PromQL, long-term</td>
+</tr>
+<tr>
+<td>Search / log analytics</td>
+<td>OpenSearch</td>
+<td>Free-text log search, aggregations</td>
+</tr>
+<tr>
+<td>ML engine</td>
+<td>MLflow + custom Python</td>
+<td>Model training, serving, drift monitoring</td>
+</tr>
+<tr>
+<td>Alerting</td>
+<td>Grafana Alerting + Alertmanager</td>
+<td>Multi-channel, silences, dedup</td>
+</tr>
+<tr>
+<td>Automation</td>
+<td>Custom Python workers + webhooks</td>
+<td>Runbook execution, SNOW auto-update</td>
+</tr>
+<tr>
+<td>Dashboard</td>
+<td>Grafana</td>
+<td>Rich visualization, PromQL, alerting</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Data Model</h2>
+<h3>Normalized Transfer Event (canonical JSON)</h3>
+<pre><code class="language-json">{
+  &quot;event_id&quot;: &quot;st-ev-20260606-abc123&quot;,
+  &quot;source&quot;: &quot;axway_securetransport&quot;,
+  &quot;timestamp&quot;: &quot;2026-06-06T14:30:00Z&quot;,
+  &quot;transfer_id&quot;: &quot;tr-98765&quot;,
+  &quot;status&quot;: &quot;failed&quot;,
+  &quot;file_name&quot;: &quot;inbound/payments_20260606.csv&quot;,
+  &quot;file_size_bytes&quot;: 1458203,
+  &quot;duration_ms&quot;: 34000,
+  &quot;protocol&quot;: &quot;SFTP&quot;,
+  &quot;source_host&quot;: &quot;partner-bank-01.external.com&quot;,
+  &quot;target_folder&quot;: &quot;/inbound/payments/&quot;,
+  &quot;account&quot;: &quot;partner_bank_inc&quot;,
+  &quot;error_code&quot;: &quot;ST-ERR-4032&quot;,
+  &quot;error_message&quot;: &quot;SSH key authentication failed&quot;,
+  &quot;node&quot;: &quot;st-node-03.prod&quot;,
+  &quot;cluster&quot;: &quot;prod-us-east&quot;
+}
+</code></pre>
+<h3>Correlated Incident (after SNOW enrichment)</h3>
+<pre><code class="language-json">{
+  &quot;incident_id&quot;: &quot;INC0012345&quot;,
+  &quot;opened_at&quot;: &quot;2026-06-06T14:31:00Z&quot;,
+  &quot;state&quot;: &quot;in_progress&quot;,
+  &quot;assigned_to&quot;: &quot;jane.doe&quot;,
+  &quot;assignment_group&quot;: &quot;MFT Support&quot;,
+  &quot;category&quot;: &quot;File Transfer Failure&quot;,
+  &quot;impact&quot;: 2,
+  &quot;urgency&quot;: 2,
+  &quot;related_transfers&quot;: [&quot;tr-98765&quot;, &quot;tr-98764&quot;],
+  &quot;ci_name&quot;: &quot;axway-st-prod-eus-03&quot;
+}
+</code></pre>
+<hr>
+<h2>AI/ML Use Cases</h2>
+<h3>1. Anomaly Detection — Transfer Failures</h3>
+<ul>
+<li><strong>Input</strong>: Transfer success rate, error code distribution, latency p99</li>
+<li><strong>Method</strong>: Isolation Forest + Seasonal Decompose (STL)</li>
+<li><strong>Granularity</strong>: Per-account, per-protocol, per-node</li>
+<li><strong>Output</strong>: Alert on score &gt; threshold, tag as <code>anomaly</code></li>
+<li><strong>Example</strong>: Partner account normally has 0.1% failure rate; sudden jump to 5% in 5-min window triggers anomaly alert before ST queue backs up.</li>
+</ul>
+<h3>2. Failure Prediction — Proactive Alerting</h3>
+<ul>
+<li><strong>Input</strong>: Disk usage, queue depth, cert expiry, error rate trend, CPU/mem</li>
+<li><strong>Method</strong>: XGBoost classifier trained on 90d window</li>
+<li><strong>Output</strong>: Probability of node degradation within next 60min</li>
+<li><strong>Example</strong>: Cert on <code>st-node-03</code> expires in 7 days + queue depth growing + error rate rising. Model predicts 72% chance of transfer failures in next hour → pre-emptive SNOW ticket created.</li>
+</ul>
+<h3>3. Root Cause Scoring</h3>
+<ul>
+<li><strong>Input</strong>: Current incident + recent events (last 30min) + change records</li>
+<li><strong>Method</strong>: BFS over event graph + weighted similarity</li>
+<li><strong>Output</strong>: Ranked list of likely root causes</li>
+<li><strong>Example</strong>: Transfer failures spike → system checks: (a) cert expiry, (b) recent change to firewall rules, (c) partner host unreachable → scores each and surfaces top candidate in dashboard.</li>
+</ul>
+<h3>4. Baseline Modeling</h3>
+<ul>
+<li><strong>Input</strong>: 30 days of transfer metrics, hourly/daily seasonality</li>
+<li><strong>Method</strong>: Prophet or TBATS</li>
+<li><strong>Output</strong>: Expected throughput envelope (upper/lower bounds)</li>
+<li><strong>Example</strong>: Black Friday expected 8x volume; model shows actual throughput is only 3x → alerts on capacity shortfall.</li>
+</ul>
+<hr>
+<h2>Alerting &amp; Incident Auto-Creation</h2>
+<h3>Severity Mapping</h3>
+<table>
+<thead>
+<tr>
+<th>Severity</th>
+<th>Condition</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Critical</td>
+<td>Anomaly score &gt; 0.95 or transfer failure spike &gt; 10% in 5min</td>
+<td>Create SNOW incident (priority 1), page on-call, Slack alert</td>
+</tr>
+<tr>
+<td>Warning</td>
+<td>Anomaly score 0.8–0.95 or trend exceeding baseline by 2σ</td>
+<td>Create SNOW incident (priority 2), Slack alert</td>
+</tr>
+<tr>
+<td>Info</td>
+<td>Single transfer failure (non-anomalous)</td>
+<td>Log only; no SNOW action</td>
+</tr>
+<tr>
+<td>Maintenance</td>
+<td>CI in change window</td>
+<td>Suppress alerts unless critical</td>
+</tr>
+</tbody></table>
+<h3>Auto-Closure</h3>
+<ul>
+<li>If a correlated Incident SNOW ticket is resolved and all related alerts clear within 30min, auto-close the SNOW incident with resolution notes.</li>
+</ul>
+<hr>
+<h2>Dashboard Structure (Grafana)</h2>
+<h3>Page 1: Service Health Overview</h3>
+<ul>
+<li>Global success rate gauge (99.9% target)</li>
+<li>Active &amp; anomalous transfers by account (table)</li>
+<li>Node health grid (green/amber/red per node)</li>
+<li>Throughput &amp; latency sparklines</li>
+<li>Top 5 error codes (bar chart)</li>
+</ul>
+<h3>Page 2: Incident Timeline</h3>
+<ul>
+<li>SNOW incidents overlaid on transfer failure timeline</li>
+<li>Each incident shows duration, response time, resolution</li>
+<li>ML anomaly markers on the same timeline</li>
+<li>Drill-down to raw transfer logs</li>
+</ul>
+<h3>Page 3: ML Insights</h3>
+<ul>
+<li>Anomaly score trend (per account/node)</li>
+<li>Failure prediction probability (next 60min)</li>
+<li>Baseline vs actual throughput (overlay chart)</li>
+<li>Model drift / accuracy metrics</li>
+</ul>
+<h3>Page 4: SLA &amp; Trends</h3>
+<ul>
+<li>Weekly/monthly transfer volume</li>
+<li>MTTR trend</li>
+<li>Top failure-prone accounts</li>
+<li>Cert expiry calendar</li>
+</ul>
+<hr>
+<h2>Implementation Phases</h2>
+<h3>Phase 1 — Foundation (2–3 weeks)</h3>
+<ol>
+<li>Implement Axway ST API collectors (transfer + health + performance)</li>
+<li>Implement ServiceNow incident poller</li>
+<li>Set up Kafka topic structure and schema</li>
+<li>Build normalization pipeline → OpenSearch + VictoriaMetrics</li>
+<li>Create Grafana dashboards (Health Overview, Incident Timeline)</li>
+<li>Define basic static alert rules</li>
+</ol>
+<h3>Phase 2 — Correlation (2 weeks)</h3>
+<ol>
+<li>Correlate ST failure events → SNOW incidents (by timestamp, account, CI)</li>
+<li>Webhook from Axway ST (direct alert forwarding)</li>
+<li>Incident enrichment: add transfer context to SNOW ticket</li>
+<li>Auto-create SNOW tickets for critical alerts</li>
+<li>MTTR tracking dashboard</li>
+</ol>
+<h3>Phase 3 — ML (3–4 weeks)</h3>
+<ol>
+<li>Train anomaly detection model (Isolation Forest) on 30d+ historical data</li>
+<li>Train failure prediction model (XGBoost) on 90d+ data</li>
+<li>Deploy ML pipeline on weekly retrain schedule</li>
+<li>Model serving API for real-time scoring</li>
+<li>ML Insights dashboard</li>
+</ol>
+<h3>Phase 4 — Automation (2 weeks)</h3>
+<ol>
+<li>Auto-remediation runbooks (retry failed transfer, restart node, etc.)</li>
+<li>SNOW auto-closure for cleared alerts</li>
+<li>Change window integration (suppress false positives during maintenance)</li>
+<li>PagerDuty / Slack / Teams routing</li>
+</ol>
+<hr>
+<h2>Operational Considerations</h2>
+<ul>
+<li><strong>Rate limits</strong>: Axway ST API may throttle at &gt; 60 req/min. Batch transfer queries in pages of 100.</li>
+<li><strong>Token rotation</strong>: OAuth2 tokens expire. Implement automatic refresh with retry logic.</li>
+<li><strong>SNOW attachment size</strong>: When attaching logs to incidents, keep payload under 5 MB; link to log store for larger.</li>
+<li><strong>Data retention</strong>: Raw events → 30d in TSDB, 90d in OpenSearch, &gt; 90d archived to S3/Blob. Aggregations kept 2y.</li>
+<li><strong>Cost monitoring</strong>: Track API call volume + storage growth. Set budget alerts.</li>
+<li><strong>Failover</strong>: If ST API is unreachable, buffer events in Kafka (retention = 7d) and replay on recovery.</li>
+<li><strong>Model retraining</strong>: Retrain weekly; if accuracy drops below threshold on validation set, fall back to previous model.</li>
+</ul>
+<hr>
+<h2>Appendix: Quick Start</h2>
+<h3>Axway ST API — Test Connection</h3>
+<pre><code class="language-bash">curl -u username:password \
+  https://st-host:444/api/v1.0/health \
+  -k
+</code></pre>
+<h3>ServiceNow — Test Connection</h3>
+<pre><code class="language-bash">curl -u user:pass \
+  &#39;https://instance.service-now.com/api/now/table/incident?sysparm_limit=1&#39;
+</code></pre>
+<h3>Docker Compose — Local Dev Setup</h3>
+<p>See <code>infra/docker-compose.yml</code> for Kafka + VictoriaMetrics + Grafana + OpenSearch local development environment.</p>
+
+<footer>Generated from Markdown by <code>scripts/build-docs.mjs</code> — run <code>docker compose run --rm app npm run docs</code> to rebuild.</footer>
+</div>
+</body>
+</html>
