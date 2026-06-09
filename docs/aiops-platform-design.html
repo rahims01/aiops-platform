@@ -371,7 +371,225 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #d0d7de; col
 <li>Cert expiry calendar</li>
 </ul>
 <hr>
+<h2>Agentic Incident Engine (in-app backend)</h2>
+<p>In addition to the long-term streaming architecture above, the platform ships an
+<strong>embedded agentic backend</strong> implemented directly in Next.js route handlers
+(<code>src/app/api/*</code>) and a library layer (<code>src/lib/agent/*</code>). This turns the dashboard
+from a static mock viewer into a working AIOps loop: it <em>detects</em> problems with
+proactive checks, <em>diagnoses</em> them with an LLM, and <em>remediates</em> the safe ones —
+all behind a <strong>mock-first dual mode</strong> so it runs with zero external dependencies
+and switches to real Axway / LLM APIs via environment variables.</p>
+<blockquote>
+<p>Ported and adapted from the <code>axway-ai-incident-mgmt</code> reference service
+(FastAPI + Azure OpenAI) into TypeScript, using the latest Claude models for RCA.</p>
+</blockquote>
+<h3>Detect → Diagnose → Remediate loop</h3>
+<pre><code>                 ┌────────────────────────────────────────────┐
+                 │  Proactive Check Engine (src/lib/agent)      │
+                 │  cert_expiry · transfer_failures ·           │
+                 │  partner_silence · ssh_key_audit ·           │
+                 │  queue_depth · jvm/disk_health               │
+                 └───────────────┬──────────────────────────────┘
+   webhook alerts ───────────────┤  Findings (fingerprinted)
+   (Datadog/PD/Splunk)           ▼
+                 ┌────────────────────────────────────────────┐
+                 │  Incident Store + lifecycle + dedup          │
+                 │  NEW → ANALYZING → (NEW w/ RCA) →            │
+                 │  REMEDIATING → RESOLVED | ESCALATED          │
+                 └───────────────┬──────────────────────────────┘
+                                 ▼
+                 ┌────────────────────────────────────────────┐
+                 │  LLM Root Cause Analysis (Claude)            │
+                 │  → root_cause, evidence, confidence,         │
+                 │    fix_steps, auto_fixable, auto_fix_action  │
+                 └───────────────┬──────────────────────────────┘
+                                 ▼  confidence ≥ threshold?
+                 ┌────────────────────────────────────────────┐
+                 │  Remediation dispatcher (pre-state capture,  │
+                 │  action, post-check) + notifications         │
+                 │  UPDATE_KNOWN_HOSTS · RENEW_CERTIFICATE ·     │
+                 │  RETRY_QUEUED_TRANSFERS · RESTART_TM          │
+                 └────────────────────────────────────────────┘
+</code></pre>
+<h3>Proactive checks</h3>
+<p>Each check reads Axway state (mock or real) and emits zero or more <code>Finding</code>s with a
+P1–P4 severity and a <strong>stable fingerprint</strong> (<code>md5(check:category:partner)[:16]</code>) used
+to deduplicate: only one open incident exists per root issue, preventing alert storms.</p>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Detects</th>
+<th>Severity scaling</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>cert_expiry</code></td>
+<td>TLS certs within warn window</td>
+<td>P1 ≤1d · P2 ≤7d · P3 ≤15d · P4 ≤30d</td>
+</tr>
+<tr>
+<td><code>transfer_failures</code></td>
+<td>≥ N failures per partner / 5 min</td>
+<td>P3 ≥3 · P2 ≥5 · P1 ≥10</td>
+</tr>
+<tr>
+<td><code>partner_silence</code></td>
+<td>No transfers within expected interval</td>
+<td>P2 if ≥3× overdue · else P3</td>
+</tr>
+<tr>
+<td><code>ssh_key_audit</code></td>
+<td>DSA / RSA&lt;2048 / weak / aged keys</td>
+<td>P2 weak · P4 aged</td>
+</tr>
+<tr>
+<td><code>queue_depth</code></td>
+<td>Backlog above warn threshold</td>
+<td>P2 ≥warn · P3 ≥½ · P4 borderline</td>
+</tr>
+<tr>
+<td><code>jvm_health</code></td>
+<td>JVM heap &amp; disk above threshold</td>
+<td>P1 ≥95% · P2 ≥warn</td>
+</tr>
+</tbody></table>
+<p><code>partner_silence</code> is net-new vs the original dashboard — it catches dormant partners
+<em>before</em> a human reports a missing file.</p>
+<h3>LLM Root Cause Analysis</h3>
+<p><code>analyzeIncident()</code> returns a structured <code>IncidentAnalysis</code>:
+<code>root_cause</code>, <code>evidence</code>, <code>confidence</code> (0–100), <code>severity</code>, <code>fix_steps[]</code>,
+<code>auto_fixable</code>, <code>auto_fix_action</code>, <code>estimated_fix_minutes</code>, <code>safety_notes</code>, <code>escalate_if</code>.</p>
+<ul>
+<li><strong>Real mode</strong>: calls Claude (default <code>claude-opus-4-8</code>, configurable) with an
+Axway-MFT-expert system prompt and forced structured output.</li>
+<li><strong>Mock mode</strong>: deterministic, realistic analyses keyed by incident category
+(SFTP_KEY, TLS_CERT, AS2_MDN, JVM, PARTNER_SILENCE, QUEUE), so RCA works offline.</li>
+<li><strong>Low-confidence fallback</strong>: if confidence &lt; threshold or the API fails, the
+incident is escalated rather than auto-fixed.</li>
+</ul>
+<h3>Confidence-gated remediation</h3>
+<p>Auto-fix runs <strong>only</strong> when <code>auto_fixable &amp;&amp; confidence ≥ AUTO_FIX_CONFIDENCE_THRESHOLD</code>
+(default 85). The dispatcher captures pre-state, executes the action, runs a post-check,
+and marks the incident <code>RESOLVED</code> or <code>ESCALATED</code>. In mock mode actions are simulated
+and logged; in real mode they call the Axway Admin API.</p>
+<h3>API surface (<code>src/app/api</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Method</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/api/checks/run</code></td>
+<td>POST</td>
+<td>Run all proactive checks, create/dedup incidents</td>
+</tr>
+<tr>
+<td><code>/api/incidents</code></td>
+<td>GET</td>
+<td>List incidents (filter by status, severity)</td>
+</tr>
+<tr>
+<td><code>/api/incidents/[id]</code></td>
+<td>GET / PATCH / DELETE</td>
+<td>Detail / update / resolve</td>
+</tr>
+<tr>
+<td><code>/api/incidents/[id]/analyze</code></td>
+<td>POST</td>
+<td>LLM root-cause analysis</td>
+</tr>
+<tr>
+<td><code>/api/incidents/[id]/fix</code></td>
+<td>POST</td>
+<td>Confidence-gated auto-fix</td>
+</tr>
+<tr>
+<td><code>/api/stats</code></td>
+<td>GET</td>
+<td>Incident counts by severity / category</td>
+</tr>
+<tr>
+<td><code>/api/health</code></td>
+<td>GET</td>
+<td>Open incidents, P1 count, JVM/disk/cert summary</td>
+</tr>
+<tr>
+<td><code>/api/webhooks/alert</code></td>
+<td>POST</td>
+<td>Ingest external alerts (Datadog/PagerDuty/Splunk)</td>
+</tr>
+<tr>
+<td><code>/api/chat</code></td>
+<td>POST</td>
+<td>Conversational Axway assistant</td>
+</tr>
+</tbody></table>
+<h3>Dual-mode configuration (env)</h3>
+<table>
+<thead>
+<tr>
+<th>Var</th>
+<th>Default</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>MOCK_AXWAY</code></td>
+<td><code>true</code></td>
+<td>Use mock Axway data vs real Admin API</td>
+</tr>
+<tr>
+<td><code>ANTHROPIC_API_KEY</code></td>
+<td><em>(empty)</em></td>
+<td>Empty ⇒ mock LLM; set ⇒ real Claude RCA</td>
+</tr>
+<tr>
+<td><code>ANTHROPIC_MODEL</code></td>
+<td><code>claude-opus-4-8</code></td>
+<td>Model for RCA / chat</td>
+</tr>
+<tr>
+<td><code>AUTO_FIX_CONFIDENCE_THRESHOLD</code></td>
+<td><code>85</code></td>
+<td>Min confidence for autonomous fix</td>
+</tr>
+<tr>
+<td><code>CERT_EXPIRY_WARN_DAYS</code></td>
+<td><code>30</code></td>
+<td>Cert warn window</td>
+</tr>
+<tr>
+<td><code>FAILURE_RATE_THRESHOLD</code></td>
+<td><code>3</code></td>
+<td>Failures/5min to flag</td>
+</tr>
+<tr>
+<td><code>QUEUE_DEPTH_WARN</code></td>
+<td><code>500</code></td>
+<td>Queue backlog warn</td>
+</tr>
+<tr>
+<td><code>JVM_HEAP_WARN_PCT</code> / <code>DISK_WARN_PCT</code></td>
+<td><code>85</code> / <code>80</code></td>
+<td>Resource warn thresholds</td>
+</tr>
+</tbody></table>
+<hr>
 <h2>Implementation Phases</h2>
+<h3>Phase 0 — Embedded agentic backend (this iteration)</h3>
+<p>Ships the Detect → Diagnose → Remediate loop above as in-app Next.js route handlers,
+mock-first. Replaces static <code>mock-data.ts</code> reads on the ML pages with live findings.</p>
+<ol>
+<li><strong>Foundation</strong> — domain types, dual-mode config, mock Axway providers, 6-check engine, <code>/api/checks/run</code></li>
+<li><strong>Incidents</strong> — in-memory store with fingerprint dedup + lifecycle, <code>/api/incidents</code> CRUD, <code>/api/stats</code>, <code>/api/health</code></li>
+<li><strong>RCA</strong> — Claude-backed <code>analyzeIncident</code> (mock fallback), <code>/api/incidents/[id]/analyze</code>, <code>/api/chat</code></li>
+<li><strong>Automation</strong> — confidence-gated <code>/api/incidents/[id]/fix</code>, notifications, <code>/api/webhooks/alert</code></li>
+<li><strong>UI</strong> — Incident Console page; wire ML Insights RCA + chat assistant to the live APIs</li>
+</ol>
 <h3>Phase 1 — Foundation (2–3 weeks)</h3>
 <ol>
 <li>Implement Axway ST API collectors (transfer + health + performance)</li>
@@ -429,7 +647,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #d0d7de; col
 <h3>Docker Compose — Local Dev Setup</h3>
 <p>See <code>infra/docker-compose.yml</code> for Kafka + VictoriaMetrics + Grafana + OpenSearch local development environment.</p>
 
-<footer>Generated from Markdown by <code>scripts/build-docs.mjs</code> — run <code>docker compose run --rm app npm run docs</code> to rebuild.</footer>
+<footer>Generated from Markdown by <code>scripts/build-docs.mjs</code> — run <code>docker compose -f docker-compose.local.yml run --rm app npm run docs</code> to rebuild.</footer>
 </div>
 </body>
 </html>

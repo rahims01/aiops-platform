@@ -16,7 +16,6 @@ const now = new Date();
 const formatISO = (date: Date) => date.toISOString();
 const addMinutes = (date: Date, minutes: number) => new Date(date.getTime() + minutes * 60000);
 const addHours = (date: Date, hours: number) => new Date(date.getTime() + hours * 3600000);
-const addDays = (date: Date, days: number) => new Date(date.getTime() + days * 86400000);
 
 export const mockTransfers: TransferEvent[] = [
   {

@@ -7,7 +7,7 @@ This project runs entirely in Docker — no host Node.js install required, just 
 Start the development server (with hot reload):
 
 ```bash
-docker compose up --build
+docker compose -f docker-compose.local.yml up --build
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
@@ -17,15 +17,15 @@ You can start editing the page by modifying `src/app/page.tsx`. The source is vo
 Run one-off commands inside the container:
 
 ```bash
-docker compose run --rm app npm run lint         # Lint
-docker compose run --rm app npx tsc --noEmit     # Type-check
-docker compose run --rm app npm run build        # Production build
+docker compose -f docker-compose.local.yml run --rm app npm run lint         # Lint
+docker compose -f docker-compose.local.yml run --rm app npx tsc --noEmit     # Type-check
+docker compose -f docker-compose.local.yml run --rm app npm run build        # Production build
 ```
 
 Stop the dev server:
 
 ```bash
-docker compose down
+docker compose -f docker-compose.local.yml down
 ```
 
 For full dev/prod instructions, see [RUNBOOK.md](./RUNBOOK.md).
@@ -35,7 +35,7 @@ For full dev/prod instructions, see [RUNBOOK.md](./RUNBOOK.md).
 Browsable HTML versions of all Markdown docs live in [docs/](./docs/) — open `docs/index.html`. Regenerate them after editing any `.md`:
 
 ```bash
-docker compose run --rm app npm run docs
+docker compose -f docker-compose.local.yml run --rm app npm run docs
 ```
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

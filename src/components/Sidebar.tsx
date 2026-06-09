@@ -3,19 +3,20 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import {
   LayoutDashboard,
   GitGraph,
   Brain,
   TrendingUp,
-  AlertTriangle,
+  ShieldAlert,
   Server,
-  Settings,
 } from 'lucide-react';
 
 const navigation = [
   { name: 'Health Overview', href: '/', icon: LayoutDashboard },
   { name: 'Incident Timeline', href: '/incidents', icon: GitGraph },
+  { name: 'Incident Console', href: '/console', icon: ShieldAlert },
   { name: 'ML Insights', href: '/ml-insights', icon: Brain },
   { name: 'SLA & Trends', href: '/sla-trends', icon: TrendingUp },
 ];
@@ -50,14 +51,17 @@ export function Sidebar() {
         })}
       </nav>
       <div className="border-t border-gray-700 p-4">
-        <div className="flex items-center gap-3 text-sm">
-          <div className="h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center">
-            <Server className="h-4 w-4 text-gray-400" />
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center">
+              <Server className="h-4 w-4 text-gray-400" />
+            </div>
+            <div>
+              <p className="text-white font-medium">prod-us-east</p>
+              <p className="text-xs text-gray-400">Cluster</p>
+            </div>
           </div>
-          <div>
-            <p className="text-white font-medium">prod-us-east</p>
-            <p className="text-xs text-gray-400">Cluster</p>
-          </div>
+          <ThemeToggle />
         </div>
       </div>
     </aside>

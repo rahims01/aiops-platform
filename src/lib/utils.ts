@@ -51,6 +51,27 @@ export function getSeverityColor(severity: string): string {
   return colors[severity] || 'bg-gray-500 text-white';
 }
 
+export function getPriorityColor(severity: string): string {
+  const colors: Record<string, string> = {
+    P1: 'bg-red-500 text-white',
+    P2: 'bg-orange-500 text-white',
+    P3: 'bg-yellow-500 text-white',
+    P4: 'bg-blue-500 text-white',
+  };
+  return colors[severity] || 'bg-gray-500 text-white';
+}
+
+export function getIncidentStatusColor(status: string): string {
+  const colors: Record<string, string> = {
+    NEW: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
+    ANALYZING: 'bg-purple-500/15 text-purple-600 dark:text-purple-400',
+    REMEDIATING: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
+    RESOLVED: 'bg-green-500/15 text-green-600 dark:text-green-400',
+    ESCALATED: 'bg-red-500/15 text-red-600 dark:text-red-400',
+  };
+  return colors[status] || 'bg-gray-500/15 text-gray-600 dark:text-gray-400';
+}
+
 export function getRiskColor(risk: string): string {
   const colors: Record<string, string> = {
     low: 'bg-green-500',

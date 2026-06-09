@@ -227,7 +227,129 @@ Authentication: Basic Auth (user/password) or OAuth2 with `X-UserToken`.
 
 ---
 
+## Agentic Incident Engine (in-app backend)
+
+In addition to the long-term streaming architecture above, the platform ships an
+**embedded agentic backend** implemented directly in Next.js route handlers
+(`src/app/api/*`) and a library layer (`src/lib/agent/*`). This turns the dashboard
+from a static mock viewer into a working AIOps loop: it *detects* problems with
+proactive checks, *diagnoses* them with an LLM, and *remediates* the safe ones —
+all behind a **mock-first dual mode** so it runs with zero external dependencies
+and switches to real Axway / LLM APIs via environment variables.
+
+> Ported and adapted from the `axway-ai-incident-mgmt` reference service
+> (FastAPI + Azure OpenAI) into TypeScript, using the latest Claude models for RCA.
+
+### Detect → Diagnose → Remediate loop
+
+```
+                 ┌────────────────────────────────────────────┐
+                 │  Proactive Check Engine (src/lib/agent)      │
+                 │  cert_expiry · transfer_failures ·           │
+                 │  partner_silence · ssh_key_audit ·           │
+                 │  queue_depth · jvm/disk_health               │
+                 └───────────────┬──────────────────────────────┘
+   webhook alerts ───────────────┤  Findings (fingerprinted)
+   (Datadog/PD/Splunk)           ▼
+                 ┌────────────────────────────────────────────┐
+                 │  Incident Store + lifecycle + dedup          │
+                 │  NEW → ANALYZING → (NEW w/ RCA) →            │
+                 │  REMEDIATING → RESOLVED | ESCALATED          │
+                 └───────────────┬──────────────────────────────┘
+                                 ▼
+                 ┌────────────────────────────────────────────┐
+                 │  LLM Root Cause Analysis (Claude)            │
+                 │  → root_cause, evidence, confidence,         │
+                 │    fix_steps, auto_fixable, auto_fix_action  │
+                 └───────────────┬──────────────────────────────┘
+                                 ▼  confidence ≥ threshold?
+                 ┌────────────────────────────────────────────┐
+                 │  Remediation dispatcher (pre-state capture,  │
+                 │  action, post-check) + notifications         │
+                 │  UPDATE_KNOWN_HOSTS · RENEW_CERTIFICATE ·     │
+                 │  RETRY_QUEUED_TRANSFERS · RESTART_TM          │
+                 └────────────────────────────────────────────┘
+```
+
+### Proactive checks
+
+Each check reads Axway state (mock or real) and emits zero or more `Finding`s with a
+P1–P4 severity and a **stable fingerprint** (`md5(check:category:partner)[:16]`) used
+to deduplicate: only one open incident exists per root issue, preventing alert storms.
+
+| Check | Detects | Severity scaling |
+|---|---|---|
+| `cert_expiry` | TLS certs within warn window | P1 ≤1d · P2 ≤7d · P3 ≤15d · P4 ≤30d |
+| `transfer_failures` | ≥ N failures per partner / 5 min | P3 ≥3 · P2 ≥5 · P1 ≥10 |
+| `partner_silence` | No transfers within expected interval | P2 if ≥3× overdue · else P3 |
+| `ssh_key_audit` | DSA / RSA<2048 / weak / aged keys | P2 weak · P4 aged |
+| `queue_depth` | Backlog above warn threshold | P2 ≥warn · P3 ≥½ · P4 borderline |
+| `jvm_health` | JVM heap & disk above threshold | P1 ≥95% · P2 ≥warn |
+
+`partner_silence` is net-new vs the original dashboard — it catches dormant partners
+*before* a human reports a missing file.
+
+### LLM Root Cause Analysis
+
+`analyzeIncident()` returns a structured `IncidentAnalysis`:
+`root_cause`, `evidence`, `confidence` (0–100), `severity`, `fix_steps[]`,
+`auto_fixable`, `auto_fix_action`, `estimated_fix_minutes`, `safety_notes`, `escalate_if`.
+
+- **Real mode**: calls Claude (default `claude-opus-4-8`, configurable) with an
+  Axway-MFT-expert system prompt and forced structured output.
+- **Mock mode**: deterministic, realistic analyses keyed by incident category
+  (SFTP_KEY, TLS_CERT, AS2_MDN, JVM, PARTNER_SILENCE, QUEUE), so RCA works offline.
+- **Low-confidence fallback**: if confidence < threshold or the API fails, the
+  incident is escalated rather than auto-fixed.
+
+### Confidence-gated remediation
+
+Auto-fix runs **only** when `auto_fixable && confidence ≥ AUTO_FIX_CONFIDENCE_THRESHOLD`
+(default 85). The dispatcher captures pre-state, executes the action, runs a post-check,
+and marks the incident `RESOLVED` or `ESCALATED`. In mock mode actions are simulated
+and logged; in real mode they call the Axway Admin API.
+
+### API surface (`src/app/api`)
+
+| Route | Method | Purpose |
+|---|---|---|
+| `/api/checks/run` | POST | Run all proactive checks, create/dedup incidents |
+| `/api/incidents` | GET | List incidents (filter by status, severity) |
+| `/api/incidents/[id]` | GET / PATCH / DELETE | Detail / update / resolve |
+| `/api/incidents/[id]/analyze` | POST | LLM root-cause analysis |
+| `/api/incidents/[id]/fix` | POST | Confidence-gated auto-fix |
+| `/api/stats` | GET | Incident counts by severity / category |
+| `/api/health` | GET | Open incidents, P1 count, JVM/disk/cert summary |
+| `/api/webhooks/alert` | POST | Ingest external alerts (Datadog/PagerDuty/Splunk) |
+| `/api/chat` | POST | Conversational Axway assistant |
+
+### Dual-mode configuration (env)
+
+| Var | Default | Effect |
+|---|---|---|
+| `MOCK_AXWAY` | `true` | Use mock Axway data vs real Admin API |
+| `ANTHROPIC_API_KEY` | _(empty)_ | Empty ⇒ mock LLM; set ⇒ real Claude RCA |
+| `ANTHROPIC_MODEL` | `claude-opus-4-8` | Model for RCA / chat |
+| `AUTO_FIX_CONFIDENCE_THRESHOLD` | `85` | Min confidence for autonomous fix |
+| `CERT_EXPIRY_WARN_DAYS` | `30` | Cert warn window |
+| `FAILURE_RATE_THRESHOLD` | `3` | Failures/5min to flag |
+| `QUEUE_DEPTH_WARN` | `500` | Queue backlog warn |
+| `JVM_HEAP_WARN_PCT` / `DISK_WARN_PCT` | `85` / `80` | Resource warn thresholds |
+
+---
+
 ## Implementation Phases
+
+### Phase 0 — Embedded agentic backend (this iteration)
+
+Ships the Detect → Diagnose → Remediate loop above as in-app Next.js route handlers,
+mock-first. Replaces static `mock-data.ts` reads on the ML pages with live findings.
+
+1. **Foundation** — domain types, dual-mode config, mock Axway providers, 6-check engine, `/api/checks/run`
+2. **Incidents** — in-memory store with fingerprint dedup + lifecycle, `/api/incidents` CRUD, `/api/stats`, `/api/health`
+3. **RCA** — Claude-backed `analyzeIncident` (mock fallback), `/api/incidents/[id]/analyze`, `/api/chat`
+4. **Automation** — confidence-gated `/api/incidents/[id]/fix`, notifications, `/api/webhooks/alert`
+5. **UI** — Incident Console page; wire ML Insights RCA + chat assistant to the live APIs
 
 ### Phase 1 — Foundation (2–3 weeks)
 

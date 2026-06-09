@@ -13,7 +13,7 @@ Complete guide to running the Axway SecureTransport AIOps Platform locally and i
 cd aiops-platform
 
 # 2. Build the image and start the dev server
-docker compose up --build
+docker compose -f docker-compose.local.yml up --build
 
 # 3. Open http://localhost:3000
 ```
@@ -44,7 +44,7 @@ docker compose version    # v2.x.x
 All development happens in the `app` container (built from `Dockerfile.dev`). The project source is volume-mounted, so edits on the host are picked up live.
 
 ```bash
-docker compose up --build    # Build image + start Next.js dev server (Turbopack)
+docker compose -f docker-compose.local.yml up --build    # Build image + start Next.js dev server (Turbopack)
 ```
 
 **Access:** http://localhost:3000
@@ -57,7 +57,7 @@ docker compose up --build    # Build image + start Next.js dev server (Turbopack
 
 Stop:
 ```bash
-docker compose down
+docker compose -f docker-compose.local.yml down
 ```
 
 ### One-off commands in the container
@@ -65,16 +65,16 @@ docker compose down
 Run lint, type-check, or any tooling inside the same image without a host Node install. `--rm` removes the throwaway container when done:
 
 ```bash
-docker compose run --rm app npm run lint         # ESLint
-docker compose run --rm app npx tsc --noEmit     # Type-check only
-docker compose run --rm app npm run build        # Production build
-docker compose run --rm app sh                   # Interactive shell in the container
+docker compose -f docker-compose.local.yml run --rm app npm run lint         # ESLint
+docker compose -f docker-compose.local.yml run --rm app npx tsc --noEmit     # Type-check only
+docker compose -f docker-compose.local.yml run --rm app npm run build        # Production build
+docker compose -f docker-compose.local.yml run --rm app sh                   # Interactive shell in the container
 ```
 
 If the dev server is already running, you can also exec into it:
 
 ```bash
-docker compose exec app npm run lint
+docker compose -f docker-compose.local.yml exec app npm run lint
 ```
 
 ---
@@ -96,7 +96,7 @@ This builds the multi-stage `Dockerfile` (standalone output) and includes a heal
 The `app` (dev) service sets `NODE_ENV=development`, but `next build` **must** run with `NODE_ENV=production` — otherwise prerendering fails (e.g. `/_global-error: Cannot read properties of null (reading 'useContext')`). Override it:
 
 ```bash
-docker compose run --rm -e NODE_ENV=production app npm run build   # Standalone output in .next/standalone
+docker compose -f docker-compose.local.yml run --rm -e NODE_ENV=production app npm run build   # Standalone output in .next/standalone
 ```
 
 > For a real production run, prefer `docker compose -f docker-compose.prod.yml up --build` — its multi-stage `Dockerfile` builds with the correct env automatically.
@@ -186,7 +186,7 @@ aiops-platform/
 ├── postcss.config.mjs
 ├── Dockerfile                  # Production multi-stage
 ├── Dockerfile.dev              # Development
-├── docker-compose.yml          # Dev orchestration
+├── docker-compose.local.yml          # Dev orchestration
 ├── docker-compose.prod.yml     # Prod orchestration (if exists)
 ├── .gitignore
 ├── .dockerignore
@@ -204,14 +204,14 @@ All commands run through Docker. The underlying npm scripts live in `package.jso
 
 | Command | Description |
 |---------|-------------|
-| `docker compose up --build` | Start dev server (Turbopack, HMR) |
-| `docker compose down` | Stop dev server |
-| `docker compose run --rm -e NODE_ENV=production app npm run build` | Production build (standalone output) |
-| `docker compose run --rm app npm run lint` | Run ESLint (core-web-vitals + typescript) |
-| `docker compose run --rm app npx tsc --noEmit` | Type-check only (no build) |
-| `docker compose run --rm app npm run docs` | Regenerate HTML docs in `docs/` from the `.md` files |
-| `docker compose run --rm app sh` | Open a shell in the container |
-| `docker compose exec app <cmd>` | Run `<cmd>` in the already-running dev container |
+| `docker compose -f docker-compose.local.yml up --build` | Start dev server (Turbopack, HMR) |
+| `docker compose -f docker-compose.local.yml down` | Stop dev server |
+| `docker compose -f docker-compose.local.yml run --rm -e NODE_ENV=production app npm run build` | Production build (standalone output) |
+| `docker compose -f docker-compose.local.yml run --rm app npm run lint` | Run ESLint (core-web-vitals + typescript) |
+| `docker compose -f docker-compose.local.yml run --rm app npx tsc --noEmit` | Type-check only (no build) |
+| `docker compose -f docker-compose.local.yml run --rm app npm run docs` | Regenerate HTML docs in `docs/` from the `.md` files |
+| `docker compose -f docker-compose.local.yml run --rm app sh` | Open a shell in the container |
+| `docker compose -f docker-compose.local.yml exec app <cmd>` | Run `<cmd>` in the already-running dev container |
 | `docker compose -f docker-compose.prod.yml up --build -d` | Build + run production server |
 
 ---
@@ -223,7 +223,7 @@ Every Markdown doc in the repo root has a browsable HTML rendering under `docs/`
 Regenerate after editing any `.md` (runs inside the container, like everything else):
 
 ```bash
-docker compose run --rm app npm run docs
+docker compose -f docker-compose.local.yml run --rm app npm run docs
 ```
 
 - Output: `docs/<name>.html` + `docs/index.html`
@@ -308,7 +308,7 @@ export default [
 ];
 ```
 
-Run: `docker compose run --rm app npm run lint`
+Run: `docker compose -f docker-compose.local.yml run --rm app npm run lint`
 
 ---
 
@@ -365,7 +365,7 @@ export const mockNodeHealth: NodeHealth[] = [...];
 # Find and kill the host process holding the port
 lsof -ti:3000 | xargs kill -9
 
-# Or remap the host port in docker-compose.yml, e.g.:
+# Or remap the host port in docker-compose.local.yml, e.g.:
 #   ports:
 #     - "3001:3000"
 ```
@@ -374,13 +374,13 @@ lsof -ti:3000 | xargs kill -9
 ```bash
 # Restart TS server in editor (VS Code: Cmd+Shift+P → "TypeScript: Restart TS Server")
 # Or type-check in the container
-docker compose run --rm app npx tsc --noEmit
+docker compose -f docker-compose.local.yml run --rm app npx tsc --noEmit
 ```
 
 ### Build fails on `/_global-error` with "Cannot read properties of null (reading 'useContext')"
 The dev `app` service sets `NODE_ENV=development`, which breaks `next build`. Build with production env:
 ```bash
-docker compose run --rm -e NODE_ENV=production app npm run build
+docker compose -f docker-compose.local.yml run --rm -e NODE_ENV=production app npm run build
 # or use the prod stack, which sets it correctly:
 docker compose -f docker-compose.prod.yml up --build
 ```
@@ -395,18 +395,18 @@ git commit -m "chore: update lockfile"
 ### Dependencies changed but container is stale
 ```bash
 # Rebuild the image so npm ci reruns inside the container
-docker compose build app
-docker compose up
+docker compose -f docker-compose.local.yml build app
+docker compose -f docker-compose.local.yml up
 ```
 
 ### Code changes not reflected in the container
-- Confirm the volume mounts in `docker-compose.yml` are intact (`.:/app`)
-- Restart: `docker compose restart app`, or rebuild: `docker compose up --build`
+- Confirm the volume mounts in `docker-compose.local.yml` are intact (`.:/app`)
+- Restart: `docker compose -f docker-compose.local.yml restart app`, or rebuild: `docker compose -f docker-compose.local.yml up --build`
 
 ### Tailwind styles not applying
 - Ensure `@import "tailwindcss";` is in `globals.css`
 - Check `postcss.config.mjs` has `@tailwindcss/postcss`
-- Restart the container: `docker compose restart app`
+- Restart the container: `docker compose -f docker-compose.local.yml restart app`
 
 ### Next.js 16 breaking changes
 - Check `node_modules/next/dist/docs/` for current APIs
@@ -417,8 +417,8 @@ docker compose up
 
 ## Deployment Checklist
 
-- [ ] `docker compose run --rm app npm run lint` passes
-- [ ] `docker compose run --rm app npx tsc --noEmit` passes
+- [ ] `docker compose -f docker-compose.local.yml run --rm app npm run lint` passes
+- [ ] `docker compose -f docker-compose.local.yml run --rm app npx tsc --noEmit` passes
 - [ ] Production image builds & runs: `docker compose -f docker-compose.prod.yml up --build`
 - [ ] Health check passes (compose `healthcheck` reports `healthy`)
 - [ ] Environment variables configured for target env

@@ -79,7 +79,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #d0d7de; col
 <li>ESLint extends <code>eslint-config-next/core-web-vitals</code> + <code>eslint-config-next/typescript</code></li>
 <li>Strict TS: <code>strict: true</code>, <code>noEmit: true</code>, <code>isolatedModules: true</code></li>
 <li>All commands run inside Docker containers (not on the host)</li>
-<li>Run <code>docker compose run --rm app npm run lint</code> before committing</li>
+<li>Run <code>docker compose -f docker-compose.local.yml run --rm app npm run lint</code> before committing</li>
 <li>No test framework configured yet</li>
 <li>Environment variables: <code>.env*</code> ignored (add <code>.env.example</code> if needed)</li>
 </ul>
@@ -91,11 +91,11 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #d0d7de; col
 <li>OAuth2 tokens expire — implement automatic refresh with retry logic</li>
 </ul>
 <h2>Commands &amp; shortcuts (all via Docker)</h2>
-<pre><code class="language-bash">docker compose up --build                       # Start dev server (localhost:3000, HMR)
-docker compose down                             # Stop dev server
-docker compose run --rm app npm run build       # Production build (output: standalone)
-docker compose run --rm app npm run lint        # ESLint
-docker compose run --rm app npx tsc --noEmit    # Type-check only
+<pre><code class="language-bash">docker compose -f docker-compose.local.yml up --build                       # Start dev server (localhost:3000, HMR)
+docker compose -f docker-compose.local.yml down                             # Stop dev server
+docker compose -f docker-compose.local.yml run --rm app npm run build       # Production build (output: standalone)
+docker compose -f docker-compose.local.yml run --rm app npm run lint        # ESLint
+docker compose -f docker-compose.local.yml run --rm app npx tsc --noEmit    # Type-check only
 docker compose -f docker-compose.prod.yml up --build -d   # Production server
 </code></pre>
 <h2>Architecture notes</h2>
@@ -128,7 +128,7 @@ docker compose -f docker-compose.prod.yml up --build -d   # Production server
 <li><code>mockVolumeTrend</code> — { date, volume }[]</li>
 </ul>
 
-<footer>Generated from Markdown by <code>scripts/build-docs.mjs</code> — run <code>docker compose run --rm app npm run docs</code> to rebuild.</footer>
+<footer>Generated from Markdown by <code>scripts/build-docs.mjs</code> — run <code>docker compose -f docker-compose.local.yml run --rm app npm run docs</code> to rebuild.</footer>
 </div>
 </body>
 </html>

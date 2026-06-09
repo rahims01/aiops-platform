@@ -61,7 +61,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #d0d7de; col
 <div class="wrap">
 
 <h1>AIOps Platform — Documentation</h1>
-<p>HTML rendering of the project's Markdown docs. Regenerate with <code>docker compose run --rm app npm run docs</code>.</p>
+<p>HTML rendering of the project's Markdown docs. Regenerate with <code>docker compose -f docker-compose.local.yml run --rm app npm run docs</code>.</p>
 <ul class="doc-index">
 <li><a href="AGENTS.html">Agent / Contributor Guide</a><span class="file">AGENTS.md</span></li>
 <li><a href="CLAUDE.html">Claude Code Pointer</a><span class="file">CLAUDE.md</span></li>
@@ -70,7 +70,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #d0d7de; col
 <li><a href="aiops-platform-design.html">Platform Design</a><span class="file">aiops-platform-design.md</span></li>
 <li><a href="memory.html">Project Memory</a><span class="file">memory.md</span></li>
 </ul>
-<footer>Generated from Markdown by <code>scripts/build-docs.mjs</code> — run <code>docker compose run --rm app npm run docs</code> to rebuild.</footer>
+<footer>Generated from Markdown by <code>scripts/build-docs.mjs</code> — run <code>docker compose -f docker-compose.local.yml run --rm app npm run docs</code> to rebuild.</footer>
 </div>
 </body>
 </html>

@@ -16,7 +16,7 @@
 - ESLint extends `eslint-config-next/core-web-vitals` + `eslint-config-next/typescript`
 - Strict TS: `strict: true`, `noEmit: true`, `isolatedModules: true`
 - All commands run inside Docker containers (not on the host)
-- Run `docker compose run --rm app npm run lint` before committing
+- Run `docker compose -f docker-compose.local.yml run --rm app npm run lint` before committing
 - No test framework configured yet
 - Environment variables: `.env*` ignored (add `.env.example` if needed)
 
@@ -28,11 +28,11 @@
 
 ## Commands & shortcuts (all via Docker)
 ```bash
-docker compose up --build                       # Start dev server (localhost:3000, HMR)
-docker compose down                             # Stop dev server
-docker compose run --rm app npm run build       # Production build (output: standalone)
-docker compose run --rm app npm run lint        # ESLint
-docker compose run --rm app npx tsc --noEmit    # Type-check only
+docker compose -f docker-compose.local.yml up --build                       # Start dev server (localhost:3000, HMR)
+docker compose -f docker-compose.local.yml down                             # Stop dev server
+docker compose -f docker-compose.local.yml run --rm app npm run build       # Production build (output: standalone)
+docker compose -f docker-compose.local.yml run --rm app npm run lint        # ESLint
+docker compose -f docker-compose.local.yml run --rm app npx tsc --noEmit    # Type-check only
 docker compose -f docker-compose.prod.yml up --build -d   # Production server
 ```
 

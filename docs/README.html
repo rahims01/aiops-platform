@@ -64,22 +64,22 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #d0d7de; col
 <h2>Getting Started</h2>
 <p>This project runs entirely in Docker — no host Node.js install required, just Docker + Docker Compose.</p>
 <p>Start the development server (with hot reload):</p>
-<pre><code class="language-bash">docker compose up --build
+<pre><code class="language-bash">docker compose -f docker-compose.local.yml up --build
 </code></pre>
 <p>Open <a href="http://localhost:3000">http://localhost:3000</a> with your browser to see the result.</p>
 <p>You can start editing the page by modifying <code>src/app/page.tsx</code>. The source is volume-mounted into the container, so the page auto-updates as you edit.</p>
 <p>Run one-off commands inside the container:</p>
-<pre><code class="language-bash">docker compose run --rm app npm run lint         # Lint
-docker compose run --rm app npx tsc --noEmit     # Type-check
-docker compose run --rm app npm run build        # Production build
+<pre><code class="language-bash">docker compose -f docker-compose.local.yml run --rm app npm run lint         # Lint
+docker compose -f docker-compose.local.yml run --rm app npx tsc --noEmit     # Type-check
+docker compose -f docker-compose.local.yml run --rm app npm run build        # Production build
 </code></pre>
 <p>Stop the dev server:</p>
-<pre><code class="language-bash">docker compose down
+<pre><code class="language-bash">docker compose -f docker-compose.local.yml down
 </code></pre>
 <p>For full dev/prod instructions, see <a href="RUNBOOK.html">RUNBOOK.md</a>.</p>
 <h2>Documentation</h2>
 <p>Browsable HTML versions of all Markdown docs live in <a href="./docs/">docs/</a> — open <code>docs/index.html</code>. Regenerate them after editing any <code>.md</code>:</p>
-<pre><code class="language-bash">docker compose run --rm app npm run docs
+<pre><code class="language-bash">docker compose -f docker-compose.local.yml run --rm app npm run docs
 </code></pre>
 <p>This project uses <a href="https://nextjs.org/docs/app/building-your-application/optimizing/fonts"><code>next/font</code></a> to automatically optimize and load <a href="https://vercel.com/font">Geist</a>, a new font family for Vercel.</p>
 <h2>Learn More</h2>
@@ -93,7 +93,7 @@ docker compose run --rm app npm run build        # Production build
 <p>The easiest way to deploy your Next.js app is to use the <a href="https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme">Vercel Platform</a> from the creators of Next.js.</p>
 <p>Check out our <a href="https://nextjs.org/docs/app/building-your-application/deploying">Next.js deployment documentation</a> for more details.</p>
 
-<footer>Generated from Markdown by <code>scripts/build-docs.mjs</code> — run <code>docker compose run --rm app npm run docs</code> to rebuild.</footer>
+<footer>Generated from Markdown by <code>scripts/build-docs.mjs</code> — run <code>docker compose -f docker-compose.local.yml run --rm app npm run docs</code> to rebuild.</footer>
 </div>
 </body>
 </html>

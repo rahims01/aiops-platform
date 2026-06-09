@@ -6,7 +6,7 @@
  * plus a docs/index.html landing page. Intra-doc links (foo.md) are rewritten to foo.html so
  * the generated site is browsable offline.
  *
- * Run inside Docker:  docker compose run --rm app npm run docs
+ * Run inside Docker:  docker compose -f docker-compose.local.yml run --rm app npm run docs
  */
 
 import { readFileSync, writeFileSync, readdirSync, mkdirSync } from 'node:fs';
@@ -101,7 +101,7 @@ const page = (title, bodyHtml, { isIndex = false } = {}) => `<!doctype html>
 <div class="wrap">
 ${isIndex ? '' : '<nav class="topbar"><a href="index.html">← All docs</a></nav>'}
 ${bodyHtml}
-<footer>Generated from Markdown by <code>scripts/build-docs.mjs</code> — run <code>docker compose run --rm app npm run docs</code> to rebuild.</footer>
+<footer>Generated from Markdown by <code>scripts/build-docs.mjs</code> — run <code>docker compose -f docker-compose.local.yml run --rm app npm run docs</code> to rebuild.</footer>
 </div>
 </body>
 </html>
@@ -126,7 +126,7 @@ for (const file of mdFiles) {
 
 // Landing page.
 const indexBody = `<h1>AIOps Platform — Documentation</h1>
-<p>HTML rendering of the project's Markdown docs. Regenerate with <code>docker compose run --rm app npm run docs</code>.</p>
+<p>HTML rendering of the project's Markdown docs. Regenerate with <code>docker compose -f docker-compose.local.yml run --rm app npm run docs</code>.</p>
 <ul class="doc-index">
 ${generated
   .map(
