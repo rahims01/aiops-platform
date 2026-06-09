@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Overview · AIOps Platform Docs</title>
+<style>
+:root { color-scheme: light dark; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.65; color: #1f2328; background: #ffffff;
+}
+.wrap { max-width: 860px; margin: 0 auto; padding: 2.5rem 1.25rem 5rem; }
+.topbar { font-size: .85rem; margin-bottom: 2rem; }
+.topbar a { color: #6366f1; text-decoration: none; }
+.topbar a:hover { text-decoration: underline; }
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; margin-top: 1.8em; margin-bottom: .6em; }
+h1 { font-size: 2rem; border-bottom: 1px solid #d0d7de; padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.45rem; border-bottom: 1px solid #d0d7de; padding-bottom: .3em; }
+h3 { font-size: 1.2rem; }
+p, ul, ol, table, blockquote, pre { margin: 0 0 1rem; }
+a { color: #6366f1; }
+code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace; font-size: .88em;
+  background: rgba(99,102,241,.1); padding: .15em .4em; border-radius: 6px;
+}
+pre {
+  background: #0d1117; color: #e6edf3; padding: 1rem 1.15rem; border-radius: 10px;
+  overflow-x: auto; font-size: .85rem; line-height: 1.5;
+}
+pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+blockquote {
+  border-left: 4px solid #6366f1; background: rgba(99,102,241,.06);
+  margin-left: 0; padding: .5rem 1rem; color: #4b5563; border-radius: 0 8px 8px 0;
+}
+table { border-collapse: collapse; width: 100%; display: block; overflow-x: auto; }
+th, td { border: 1px solid #d0d7de; padding: .5rem .75rem; text-align: left; }
+th { background: rgba(99,102,241,.08); font-weight: 600; }
+tr:nth-child(even) td { background: rgba(0,0,0,.02); }
+hr { border: none; border-top: 1px solid #d0d7de; margin: 2rem 0; }
+img { max-width: 100%; }
+ul.doc-index { list-style: none; padding: 0; }
+ul.doc-index li { margin: 0 0 .75rem; }
+ul.doc-index a { font-size: 1.1rem; font-weight: 600; text-decoration: none; }
+ul.doc-index .file { color: #6b7280; font-weight: 400; font-size: .85rem; margin-left: .5rem; }
+footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #d0d7de; color: #6b7280; font-size: .8rem; }
+@media (prefers-color-scheme: dark) {
+  body { color: #e6edf3; background: #0a0a0a; }
+  h1, h2, hr { border-color: #30363d; }
+  th, td { border-color: #30363d; }
+  th { background: rgba(99,102,241,.15); }
+  tr:nth-child(even) td { background: rgba(255,255,255,.03); }
+  blockquote { color: #9ca3af; }
+  .topbar a, a { color: #818cf8; }
+  footer { border-color: #30363d; color: #9ca3af; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="topbar"><a href="index.html">← All docs</a></nav>
+<p>This is a <a href="https://nextjs.org">Next.js</a> project bootstrapped with <a href="https://nextjs.org/docs/app/api-reference/cli/create-next-app"><code>create-next-app</code></a>.</p>
+<h2>Getting Started</h2>
+<p>This project runs entirely in Docker — no host Node.js install required, just Docker + Docker Compose.</p>
+<p>Start the development server (with hot reload):</p>
+<pre><code class="language-bash">docker compose -f docker-compose.local.yml up --build
+</code></pre>
+<p>Open <a href="http://localhost:3000">http://localhost:3000</a> with your browser to see the result.</p>
+<p>You can start editing the page by modifying <code>src/app/page.tsx</code>. The source is volume-mounted into the container, so the page auto-updates as you edit.</p>
+<p>Run one-off commands inside the container:</p>
+<pre><code class="language-bash">docker compose -f docker-compose.local.yml run --rm app npm run lint         # Lint
+docker compose -f docker-compose.local.yml run --rm app npx tsc --noEmit     # Type-check
+docker compose -f docker-compose.local.yml run --rm app npm run build        # Production build
+</code></pre>
+<p>Stop the dev server:</p>
+<pre><code class="language-bash">docker compose -f docker-compose.local.yml down
+</code></pre>
+<p>For full dev/prod instructions, see <a href="RUNBOOK.html">RUNBOOK.md</a>.</p>
+<h2>Documentation</h2>
+<p>Browsable HTML versions of all Markdown docs live in <a href="./docs/">docs/</a> — open <code>docs/index.html</code>. Regenerate them after editing any <code>.md</code>:</p>
+<pre><code class="language-bash">docker compose -f docker-compose.local.yml run --rm app npm run docs
+</code></pre>
+<p>This project uses <a href="https://nextjs.org/docs/app/building-your-application/optimizing/fonts"><code>next/font</code></a> to automatically optimize and load <a href="https://vercel.com/font">Geist</a>, a new font family for Vercel.</p>
+<h2>Learn More</h2>
+<p>To learn more about Next.js, take a look at the following resources:</p>
+<ul>
+<li><a href="https://nextjs.org/docs">Next.js Documentation</a> - learn about Next.js features and API.</li>
+<li><a href="https://nextjs.org/learn">Learn Next.js</a> - an interactive Next.js tutorial.</li>
+</ul>
+<p>You can check out <a href="https://github.com/vercel/next.js">the Next.js GitHub repository</a> - your feedback and contributions are welcome!</p>
+<h2>Deploy on Vercel</h2>
+<p>The easiest way to deploy your Next.js app is to use the <a href="https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme">Vercel Platform</a> from the creators of Next.js.</p>
+<p>Check out our <a href="https://nextjs.org/docs/app/building-your-application/deploying">Next.js deployment documentation</a> for more details.</p>
+
+<footer>Generated from Markdown by <code>scripts/build-docs.mjs</code> — run <code>docker compose -f docker-compose.local.yml run --rm app npm run docs</code> to rebuild.</footer>
+</div>
+</body>
+</html>

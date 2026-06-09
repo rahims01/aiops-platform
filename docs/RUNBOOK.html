@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Runbook — Running in Docker · AIOps Platform Docs</title>
+<style>
+:root { color-scheme: light dark; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.65; color: #1f2328; background: #ffffff;
+}
+.wrap { max-width: 860px; margin: 0 auto; padding: 2.5rem 1.25rem 5rem; }
+.topbar { font-size: .85rem; margin-bottom: 2rem; }
+.topbar a { color: #6366f1; text-decoration: none; }
+.topbar a:hover { text-decoration: underline; }
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; margin-top: 1.8em; margin-bottom: .6em; }
+h1 { font-size: 2rem; border-bottom: 1px solid #d0d7de; padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.45rem; border-bottom: 1px solid #d0d7de; padding-bottom: .3em; }
+h3 { font-size: 1.2rem; }
+p, ul, ol, table, blockquote, pre { margin: 0 0 1rem; }
+a { color: #6366f1; }
+code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace; font-size: .88em;
+  background: rgba(99,102,241,.1); padding: .15em .4em; border-radius: 6px;
+}
+pre {
+  background: #0d1117; color: #e6edf3; padding: 1rem 1.15rem; border-radius: 10px;
+  overflow-x: auto; font-size: .85rem; line-height: 1.5;
+}
+pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+blockquote {
+  border-left: 4px solid #6366f1; background: rgba(99,102,241,.06);
+  margin-left: 0; padding: .5rem 1rem; color: #4b5563; border-radius: 0 8px 8px 0;
+}
+table { border-collapse: collapse; width: 100%; display: block; overflow-x: auto; }
+th, td { border: 1px solid #d0d7de; padding: .5rem .75rem; text-align: left; }
+th { background: rgba(99,102,241,.08); font-weight: 600; }
+tr:nth-child(even) td { background: rgba(0,0,0,.02); }
+hr { border: none; border-top: 1px solid #d0d7de; margin: 2rem 0; }
+img { max-width: 100%; }
+ul.doc-index { list-style: none; padding: 0; }
+ul.doc-index li { margin: 0 0 .75rem; }
+ul.doc-index a { font-size: 1.1rem; font-weight: 600; text-decoration: none; }
+ul.doc-index .file { color: #6b7280; font-weight: 400; font-size: .85rem; margin-left: .5rem; }
+footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #d0d7de; color: #6b7280; font-size: .8rem; }
+@media (prefers-color-scheme: dark) {
+  body { color: #e6edf3; background: #0a0a0a; }
+  h1, h2, hr { border-color: #30363d; }
+  th, td { border-color: #30363d; }
+  th { background: rgba(99,102,241,.15); }
+  tr:nth-child(even) td { background: rgba(255,255,255,.03); }
+  blockquote { color: #9ca3af; }
+  .topbar a, a { color: #818cf8; }
+  footer { border-color: #30363d; color: #9ca3af; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="topbar"><a href="index.html">← All docs</a></nav>
+<h1>AIOps Platform — Runbook</h1>
+<p>Complete guide to running the Axway SecureTransport AIOps Platform locally and in production.</p>
+<hr>
+<h2>Quick Start</h2>
+<blockquote>
+<p><strong>Everything runs in Docker.</strong> You don&#39;t need Node.js or npm on your host — only Docker + Docker Compose. Dependencies install inside the container.</p>
+</blockquote>
+<pre><code class="language-bash"># 1. Clone and navigate
+cd aiops-platform
+
+# 2. Build the image and start the dev server
+docker compose -f docker-compose.local.yml up --build
+
+# 3. Open http://localhost:3000
+</code></pre>
+<hr>
+<h2>Prerequisites</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Version</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Docker</td>
+<td>24.x+</td>
+<td>The only hard requirement — runs everything</td>
+</tr>
+<tr>
+<td>Docker Compose</td>
+<td>2.x+</td>
+<td>For dev orchestration (<code>docker compose</code> v2 syntax)</td>
+</tr>
+<tr>
+<td>Node.js</td>
+<td>20.x LTS</td>
+<td>Optional — only if you want to run outside Docker</td>
+</tr>
+<tr>
+<td>npm</td>
+<td>10.x</td>
+<td>Optional — bundled with Node.js</td>
+</tr>
+</tbody></table>
+<p>Verify:</p>
+<pre><code class="language-bash">docker --version          # 24.x.x
+docker compose version    # v2.x.x
+</code></pre>
+<hr>
+<h2>Development Mode</h2>
+<h3>Docker Compose (default)</h3>
+<p>All development happens in the <code>app</code> container (built from <code>Dockerfile.dev</code>). The project source is volume-mounted, so edits on the host are picked up live.</p>
+<pre><code class="language-bash">docker compose -f docker-compose.local.yml up --build    # Build image + start Next.js dev server (Turbopack)
+</code></pre>
+<p><strong>Access:</strong> <a href="http://localhost:3000">http://localhost:3000</a></p>
+<p><strong>Features:</strong></p>
+<ul>
+<li>Hot module replacement (HMR) via volume mounts</li>
+<li><code>node_modules</code> and <code>.next</code> cache held in named volumes (host edits don&#39;t clobber them)</li>
+<li>Mock data from <code>src/lib/mock-data.ts</code></li>
+<li>Environment: <code>NODE_ENV=development</code>, <code>NEXT_TELEMETRY_DISABLED=1</code></li>
+</ul>
+<p>Stop:</p>
+<pre><code class="language-bash">docker compose -f docker-compose.local.yml down
+</code></pre>
+<h3>One-off commands in the container</h3>
+<p>Run lint, type-check, or any tooling inside the same image without a host Node install. <code>--rm</code> removes the throwaway container when done:</p>
+<pre><code class="language-bash">docker compose -f docker-compose.local.yml run --rm app npm run lint         # ESLint
+docker compose -f docker-compose.local.yml run --rm app npx tsc --noEmit     # Type-check only
+docker compose -f docker-compose.local.yml run --rm app npm run build        # Production build
+docker compose -f docker-compose.local.yml run --rm app sh                   # Interactive shell in the container
+</code></pre>
+<p>If the dev server is already running, you can also exec into it:</p>
+<pre><code class="language-bash">docker compose -f docker-compose.local.yml exec app npm run lint
+</code></pre>
+<hr>
+<h2>Production Build</h2>
+<h3>Docker Compose (recommended)</h3>
+<pre><code class="language-bash">docker compose -f docker-compose.prod.yml up --build -d   # Build + run standalone server (detached)
+docker compose -f docker-compose.prod.yml down            # Stop
+docker compose -f docker-compose.prod.yml logs -f app     # Tail logs
+</code></pre>
+<p>This builds the multi-stage <code>Dockerfile</code> (standalone output) and includes a health check on port 3000.</p>
+<h3>Manual build &amp; run (produces the standalone output)</h3>
+<p>The <code>app</code> (dev) service sets <code>NODE_ENV=development</code>, but <code>next build</code> <strong>must</strong> run with <code>NODE_ENV=production</code> — otherwise prerendering fails (e.g. <code>/_global-error: Cannot read properties of null (reading &#39;useContext&#39;)</code>). Override it:</p>
+<pre><code class="language-bash">docker compose -f docker-compose.local.yml run --rm -e NODE_ENV=production app npm run build   # Standalone output in .next/standalone
+</code></pre>
+<blockquote>
+<p>For a real production run, prefer <code>docker compose -f docker-compose.prod.yml up --build</code> — its multi-stage <code>Dockerfile</code> builds with the correct env automatically.</p>
+</blockquote>
+<p><strong>Output structure:</strong></p>
+<pre><code>.next/
+├── standalone/
+│   ├── server.js          # Entry point
+│   ├── package.json       # Minimal deps
+│   └── node_modules/      # Production deps only
+├── static/                # Static assets (hashed)
+└── public/                # Public folder contents
+</code></pre>
+<h3>Docker Production</h3>
+<pre><code class="language-bash"># Build image
+docker build -t aiops-platform:latest .
+
+# Run container
+docker run -d \
+  --name aiops-platform \
+  -p 3000:3000 \
+  -e NODE_ENV=production \
+  -e NEXT_TELEMETRY_DISABLED=1 \
+  aiops-platform:latest
+</code></pre>
+<p><strong>Access:</strong> <a href="http://localhost:3000">http://localhost:3000</a></p>
+<p><strong>Image details:</strong></p>
+<ul>
+<li>Base: <code>node:20-alpine</code></li>
+<li>Multi-stage build (deps → builder → runner)</li>
+<li>Non-root user (<code>nextjs:nodejs</code>, uid:gid 1001)</li>
+<li>Standalone output for minimal size (~150MB)</li>
+<li>Health check via <code>server.js</code> on port 3000</li>
+</ul>
+<hr>
+<h2>Environment Variables</h2>
+<p>Create <code>.env.local</code> for local development (git-ignored):</p>
+<pre><code class="language-bash"># .env.local
+NEXT_PUBLIC_API_URL=http://localhost:3001/api
+NEXT_PUBLIC_WS_URL=ws://localhost:3001
+# Add any API keys or secrets here
+</code></pre>
+<p><strong>Production:</strong> Set via container orchestration (K8s secrets, Docker Swarm configs, etc.)</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>NODE_ENV</code></td>
+<td>Yes</td>
+<td><code>development</code> or <code>production</code></td>
+</tr>
+<tr>
+<td><code>NEXT_TELEMETRY_DISABLED</code></td>
+<td>Recommended</td>
+<td><code>1</code> to disable Next.js telemetry</td>
+</tr>
+<tr>
+<td><code>PORT</code></td>
+<td>No</td>
+<td>Server port (default: 3000)</td>
+</tr>
+<tr>
+<td><code>HOSTNAME</code></td>
+<td>No</td>
+<td>Bind address (default: <code>0.0.0.0</code>)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Project Structure</h2>
+<pre><code>aiops-platform/
+├── src/
+│   ├── app/                    # Next.js App Router
+│   │   ├── globals.css         # Tailwind v4 + CSS variables
+│   │   ├── layout.tsx          # Root layout (fonts, providers)
+│   │   └── page.tsx            # Home page (Health Overview)
+│   ├── components/             # Client components
+│   │   └── Sidebar.tsx         # Navigation sidebar
+│   └── lib/                    # Shared utilities
+│       ├── types.ts            # Core domain types
+│       ├── mock-data.ts        # All dev mock data
+│       └── utils.ts            # cn(), formatters, color helpers
+├── public/                     # Static assets
+├── .next/                      # Build output (git-ignored)
+├── node_modules/               # Dependencies (git-ignored)
+├── package.json
+├── package-lock.json
+├── tsconfig.json
+├── next.config.ts
+├── eslint.config.mjs
+├── postcss.config.mjs
+├── Dockerfile                  # Production multi-stage
+├── Dockerfile.dev              # Development
+├── docker-compose.local.yml          # Dev orchestration
+├── docker-compose.prod.yml     # Prod orchestration (if exists)
+├── .gitignore
+├── .dockerignore
+├── README.md
+├── AGENTS.md                   # Agent instructions
+├── CLAUDE.md                   # Points to AGENTS.md
+└── RUNBOOK.md                  # This file
+</code></pre>
+<hr>
+<h2>Key Commands Reference</h2>
+<p>All commands run through Docker. The underlying npm scripts live in <code>package.json</code>; Docker just wraps them so Node and dependencies match across machines.</p>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>docker compose -f docker-compose.local.yml up --build</code></td>
+<td>Start dev server (Turbopack, HMR)</td>
+</tr>
+<tr>
+<td><code>docker compose -f docker-compose.local.yml down</code></td>
+<td>Stop dev server</td>
+</tr>
+<tr>
+<td><code>docker compose -f docker-compose.local.yml run --rm -e NODE_ENV=production app npm run build</code></td>
+<td>Production build (standalone output)</td>
+</tr>
+<tr>
+<td><code>docker compose -f docker-compose.local.yml run --rm app npm run lint</code></td>
+<td>Run ESLint (core-web-vitals + typescript)</td>
+</tr>
+<tr>
+<td><code>docker compose -f docker-compose.local.yml run --rm app npx tsc --noEmit</code></td>
+<td>Type-check only (no build)</td>
+</tr>
+<tr>
+<td><code>docker compose -f docker-compose.local.yml run --rm app npm run docs</code></td>
+<td>Regenerate HTML docs in <code>docs/</code> from the <code>.md</code> files</td>
+</tr>
+<tr>
+<td><code>docker compose -f docker-compose.local.yml run --rm app sh</code></td>
+<td>Open a shell in the container</td>
+</tr>
+<tr>
+<td><code>docker compose -f docker-compose.local.yml exec app &lt;cmd&gt;</code></td>
+<td>Run <code>&lt;cmd&gt;</code> in the already-running dev container</td>
+</tr>
+<tr>
+<td><code>docker compose -f docker-compose.prod.yml up --build -d</code></td>
+<td>Build + run production server</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Documentation (HTML)</h2>
+<p>Every Markdown doc in the repo root has a browsable HTML rendering under <code>docs/</code>, produced by <code>scripts/build-docs.mjs</code> (uses <code>marked</code>). Open <code>docs/index.html</code> in a browser for the landing page.</p>
+<p>Regenerate after editing any <code>.md</code> (runs inside the container, like everything else):</p>
+<pre><code class="language-bash">docker compose -f docker-compose.local.yml run --rm app npm run docs
+</code></pre>
+<ul>
+<li>Output: <code>docs/&lt;name&gt;.html</code> + <code>docs/index.html</code></li>
+<li>Intra-doc links (<code>foo.md</code>) are rewritten to <code>foo.html</code> so the set is browsable offline</li>
+<li>The generator picks up <strong>all</strong> root-level <code>.md</code> files automatically — no per-file config</li>
+</ul>
+<hr>
+<h2>Tailwind CSS v4 Setup</h2>
+<p>This project uses <strong>Tailwind CSS v4</strong> (not v3) via PostCSS plugin:</p>
+<pre><code class="language-js">// postcss.config.mjs
+export default {
+  plugins: {
+    &#39;@tailwindcss/postcss&#39;: {},
+  },
+}
+</code></pre>
+<pre><code class="language-css">/* src/app/globals.css */
+@import &quot;tailwindcss&quot;;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+</code></pre>
+<p><strong>No <code>tailwind.config.ts</code> needed</strong> — v4 uses CSS-first configuration.</p>
+<hr>
+<h2>TypeScript Configuration</h2>
+<pre><code class="language-json">// tsconfig.json highlights
+{
+  &quot;compilerOptions&quot;: {
+    &quot;strict&quot;: true,
+    &quot;noEmit&quot;: true,
+    &quot;isolatedModules&quot;: true,
+    &quot;moduleResolution&quot;: &quot;bundler&quot;,
+    &quot;paths&quot;: { &quot;@/*&quot;: [&quot;./src/*&quot;] }
+  }
+}
+</code></pre>
+<ul>
+<li><strong>Path alias</strong>: <code>@/lib/utils</code> → <code>src/lib/utils.ts</code></li>
+<li><strong>No emit</strong>: Next.js handles compilation</li>
+<li><strong>Strict mode</strong>: All strict checks enabled</li>
+</ul>
+<hr>
+<h2>ESLint Configuration</h2>
+<pre><code class="language-js">// eslint.config.mjs
+import nextVitals from &quot;eslint-config-next/core-web-vitals&quot;;
+import nextTs from &quot;eslint-config-next/typescript&quot;;
+
+export default [
+  ...nextVitals,
+  ...nextTs,
+  globalIgnores([&quot;.next/**&quot;, &quot;out/**&quot;, &quot;build/**&quot;, &quot;next-env.d.ts&quot;])
+];
+</code></pre>
+<p>Run: <code>docker compose -f docker-compose.local.yml run --rm app npm run lint</code></p>
+<hr>
+<h2>Adding New Pages</h2>
+<ol>
+<li>Create <code>src/app/&lt;route&gt;/page.tsx</code></li>
+<li>Add to <code>Sidebar.tsx</code> navigation array</li>
+<li>Use <code>&#39;use client&#39;</code> for interactive components</li>
+<li>Import types from <code>@/lib/types</code></li>
+<li>Use mock data from <code>@/lib/mock-data</code></li>
+</ol>
+<p>Example:</p>
+<pre><code class="language-tsx">// src/app/ml-insights/page.tsx
+&#39;use client&#39;;
+
+import { mockAnomalyScores, mockFailurePredictions } from &#39;@/lib/mock-data&#39;;
+import { cn, getSeverityColor } from &#39;@/lib/utils&#39;;
+
+export default function MLInsightsPage() {
+  return (
+    &lt;div className=&quot;p-6&quot;&gt;
+      &lt;h1 className=&quot;text-2xl font-bold mb-6&quot;&gt;ML Insights&lt;/h1&gt;
+      {/* ... */}
+    &lt;/div&gt;
+  );
+}
+</code></pre>
+<hr>
+<h2>Mock Data Management</h2>
+<p>All development data lives in <code>src/lib/mock-data.ts</code>:</p>
+<ul>
+<li><strong>Types imported from</strong> <code>./types</code></li>
+<li><strong>Single source of truth</strong> for all components</li>
+<li><strong>Update here</strong> when adding new data shapes</li>
+<li><strong>Cert expiry days</strong> drive failure predictions — keep in sync</li>
+</ul>
+<pre><code class="language-typescript">// Import pattern
+import { TransferEvent, NodeHealth } from &#39;./types&#39;;
+export const mockTransfers: TransferEvent[] = [...];
+export const mockNodeHealth: NodeHealth[] = [...];
+</code></pre>
+<hr>
+<h2>Common Issues &amp; Fixes</h2>
+<h3>Port 3000 already in use</h3>
+<pre><code class="language-bash"># Find and kill the host process holding the port
+lsof -ti:3000 | xargs kill -9
+
+# Or remap the host port in docker-compose.local.yml, e.g.:
+#   ports:
+#     - &quot;3001:3000&quot;
+</code></pre>
+<h3>Type errors after adding types</h3>
+<pre><code class="language-bash"># Restart TS server in editor (VS Code: Cmd+Shift+P → &quot;TypeScript: Restart TS Server&quot;)
+# Or type-check in the container
+docker compose -f docker-compose.local.yml run --rm app npx tsc --noEmit
+</code></pre>
+<h3>Build fails on <code>/_global-error</code> with &quot;Cannot read properties of null (reading &#39;useContext&#39;)&quot;</h3>
+<p>The dev <code>app</code> service sets <code>NODE_ENV=development</code>, which breaks <code>next build</code>. Build with production env:</p>
+<pre><code class="language-bash">docker compose -f docker-compose.local.yml run --rm -e NODE_ENV=production app npm run build
+# or use the prod stack, which sets it correctly:
+docker compose -f docker-compose.prod.yml up --build
+</code></pre>
+<h3>Docker build fails on <code>npm ci</code></h3>
+<pre><code class="language-bash"># Ensure package-lock.json is committed
+git add package-lock.json
+git commit -m &quot;chore: update lockfile&quot;
+</code></pre>
+<h3>Dependencies changed but container is stale</h3>
+<pre><code class="language-bash"># Rebuild the image so npm ci reruns inside the container
+docker compose -f docker-compose.local.yml build app
+docker compose -f docker-compose.local.yml up
+</code></pre>
+<h3>Code changes not reflected in the container</h3>
+<ul>
+<li>Confirm the volume mounts in <code>docker-compose.local.yml</code> are intact (<code>.:/app</code>)</li>
+<li>Restart: <code>docker compose -f docker-compose.local.yml restart app</code>, or rebuild: <code>docker compose -f docker-compose.local.yml up --build</code></li>
+</ul>
+<h3>Tailwind styles not applying</h3>
+<ul>
+<li>Ensure <code>@import &quot;tailwindcss&quot;;</code> is in <code>globals.css</code></li>
+<li>Check <code>postcss.config.mjs</code> has <code>@tailwindcss/postcss</code></li>
+<li>Restart the container: <code>docker compose -f docker-compose.local.yml restart app</code></li>
+</ul>
+<h3>Next.js 16 breaking changes</h3>
+<ul>
+<li>Check <code>node_modules/next/dist/docs/</code> for current APIs</li>
+<li>App Router patterns differ from Pages Router</li>
+<li><code>next/font</code> usage updated (see <code>layout.tsx</code>)</li>
+</ul>
+<hr>
+<h2>Deployment Checklist</h2>
+<ul>
+<li><input disabled="" type="checkbox"> <code>docker compose -f docker-compose.local.yml run --rm app npm run lint</code> passes</li>
+<li><input disabled="" type="checkbox"> <code>docker compose -f docker-compose.local.yml run --rm app npx tsc --noEmit</code> passes</li>
+<li><input disabled="" type="checkbox"> Production image builds &amp; runs: <code>docker compose -f docker-compose.prod.yml up --build</code></li>
+<li><input disabled="" type="checkbox"> Health check passes (compose <code>healthcheck</code> reports <code>healthy</code>)</li>
+<li><input disabled="" type="checkbox"> Environment variables configured for target env</li>
+<li><input disabled="" type="checkbox"> Environment variables configured for target env</li>
+<li><input disabled="" type="checkbox"> Secrets managed (not in image)</li>
+</ul>
+<hr>
+<h2>Useful Links</h2>
+<ul>
+<li><a href="https://nextjs.org/docs">Next.js 16 Documentation</a></li>
+<li><a href="https://tailwindcss.com/docs">Tailwind CSS v4</a></li>
+<li><a href="https://react.dev">React 19</a></li>
+<li><a href="https://docs.axway.com/bundle/securetransport/">Axway SecureTransport API</a></li>
+<li><a href="https://developer.servicenow.com/dev.do#!/reference/api">ServiceNow REST API</a></li>
+</ul>
+<hr>
+<p><em>Generated for AIOps Platform v0.1.0</em></p>
+
+<footer>Generated from Markdown by <code>scripts/build-docs.mjs</code> — run <code>docker compose -f docker-compose.local.yml run --rm app npm run docs</code> to rebuild.</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent / Contributor Guide · AIOps Platform Docs</title>
+<style>
+:root { color-scheme: light dark; }
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.65; color: #1f2328; background: #ffffff;
+}
+.wrap { max-width: 860px; margin: 0 auto; padding: 2.5rem 1.25rem 5rem; }
+.topbar { font-size: .85rem; margin-bottom: 2rem; }
+.topbar a { color: #6366f1; text-decoration: none; }
+.topbar a:hover { text-decoration: underline; }
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; margin-top: 1.8em; margin-bottom: .6em; }
+h1 { font-size: 2rem; border-bottom: 1px solid #d0d7de; padding-bottom: .3em; margin-top: 0; }
+h2 { font-size: 1.45rem; border-bottom: 1px solid #d0d7de; padding-bottom: .3em; }
+h3 { font-size: 1.2rem; }
+p, ul, ol, table, blockquote, pre { margin: 0 0 1rem; }
+a { color: #6366f1; }
+code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace; font-size: .88em;
+  background: rgba(99,102,241,.1); padding: .15em .4em; border-radius: 6px;
+}
+pre {
+  background: #0d1117; color: #e6edf3; padding: 1rem 1.15rem; border-radius: 10px;
+  overflow-x: auto; font-size: .85rem; line-height: 1.5;
+}
+pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+blockquote {
+  border-left: 4px solid #6366f1; background: rgba(99,102,241,.06);
+  margin-left: 0; padding: .5rem 1rem; color: #4b5563; border-radius: 0 8px 8px 0;
+}
+table { border-collapse: collapse; width: 100%; display: block; overflow-x: auto; }
+th, td { border: 1px solid #d0d7de; padding: .5rem .75rem; text-align: left; }
+th { background: rgba(99,102,241,.08); font-weight: 600; }
+tr:nth-child(even) td { background: rgba(0,0,0,.02); }
+hr { border: none; border-top: 1px solid #d0d7de; margin: 2rem 0; }
+img { max-width: 100%; }
+ul.doc-index { list-style: none; padding: 0; }
+ul.doc-index li { margin: 0 0 .75rem; }
+ul.doc-index a { font-size: 1.1rem; font-weight: 600; text-decoration: none; }
+ul.doc-index .file { color: #6b7280; font-weight: 400; font-size: .85rem; margin-left: .5rem; }
+footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #d0d7de; color: #6b7280; font-size: .8rem; }
+@media (prefers-color-scheme: dark) {
+  body { color: #e6edf3; background: #0a0a0a; }
+  h1, h2, hr { border-color: #30363d; }
+  th, td { border-color: #30363d; }
+  th { background: rgba(99,102,241,.15); }
+  tr:nth-child(even) td { background: rgba(255,255,255,.03); }
+  blockquote { color: #9ca3af; }
+  .topbar a, a { color: #818cf8; }
+  footer { border-color: #30363d; color: #9ca3af; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="topbar"><a href="index.html">← All docs</a></nav>
+<h1>AIOps Platform — Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS v4</h1>
+<p>Monitors Axway SecureTransport file transfers with ML-powered anomaly detection, failure prediction, and incident correlation.</p>
+<h2>Key Commands</h2>
+<p><strong>All commands run inside Docker.</strong> The <code>app</code> service (Dockerfile.dev) mounts the source as a volume, so one-off commands run against your live code via <code>docker compose -f docker-compose.local.yml run --rm</code>.</p>
+<pre><code class="language-bash">docker compose -f docker-compose.local.yml up --build                       # Start dev server (localhost:3000, Turbopack, HMR)
+docker compose -f docker-compose.local.yml down                             # Stop dev server
+docker compose -f docker-compose.local.yml run --rm app npm run lint        # ESLint (next/core-web-vitals + next/typescript)
+docker compose -f docker-compose.local.yml run --rm app npx tsc --noEmit    # Type-check only (no build)
+docker compose -f docker-compose.local.yml run --rm -e NODE_ENV=production app npm run build   # Production build (output: standalone)
+docker compose -f docker-compose.local.yml run --rm app npm run docs        # Regenerate HTML docs in docs/ from the .md files
+
+docker compose -f docker-compose.prod.yml up --build -d   # Production server (standalone)
+</code></pre>
+<blockquote>
+<p>Underlying npm scripts (<code>dev</code>, <code>build</code>, <code>start</code>, <code>lint</code>) still live in package.json — Docker just wraps them. Avoid running them on the host; use the container so Node/deps match.</p>
+</blockquote>
+<h2>Architecture</h2>
+<ul>
+<li><strong>App Router</strong> in <code>src/app/</code> — pages, layouts, globals.css</li>
+<li><strong>API routes</strong> in <code>src/app/api/</code> — the agentic incident engine (route handlers)</li>
+<li><strong>Components</strong> in <code>src/components/</code> — client components (Sidebar, ThemeToggle, etc.)</li>
+<li><strong>Lib</strong> in <code>src/lib/</code> — utilities, types, mock data</li>
+<li><strong>Agent layer</strong> in <code>src/lib/agent/</code> — <strong>server-only</strong> detect→diagnose→remediate engine</li>
+<li><strong>Path alias</strong>: <code>@/*</code> → <code>./src/*</code> (tsconfig.json)</li>
+</ul>
+<h2>Agentic Incident Engine (<code>src/lib/agent/</code>, <code>src/app/api/</code>)</h2>
+<p>Mock-first detect → diagnose → remediate loop. See <code>aiops-platform-design.md</code> for the full design.</p>
+<ul>
+<li><code>config.ts</code> — env-driven dual-mode config (mock vs real). <strong>Server-only.</strong></li>
+<li><code>mock-axway.ts</code> — Axway data providers (certs, ssh keys, queues, partners, jvm/disk)</li>
+<li><code>checks.ts</code> — 6 proactive checks → <code>Finding</code>s with md5 fingerprint dedup</li>
+<li><code>store.ts</code> — in-memory incident store (on <code>globalThis</code> for HMR) + lifecycle + dedup</li>
+<li><code>llm.ts</code> — Claude RCA + chat, <strong>mock fallback</strong> when no <code>ANTHROPIC_API_KEY</code></li>
+<li><code>actions.ts</code> / <code>agent.ts</code> / <code>notifier.ts</code> — remediation, orchestration, alerts</li>
+<li>Routes: <code>/api/checks/run</code>, <code>/api/incidents[/[id][/analyze|/fix]]</code>, <code>/api/stats</code>, <code>/api/health</code>, <code>/api/chat</code>, <code>/api/webhooks/alert</code></li>
+<li>UI: <code>src/app/console/page.tsx</code> (Incident Console) drives the loop live</li>
+<li><strong>Don&#39;t import <code>src/lib/agent/*</code> from client components</strong> — it uses <code>crypto</code>/server APIs</li>
+</ul>
+<h2>Type System (<code>src/lib/types.ts</code>)</h2>
+<p>Core domain types — <strong>extend these, don&#39;t duplicate</strong>:</p>
+<ul>
+<li><code>TransferEvent</code> — SecureTransport file transfer records</li>
+<li><code>CorrelatedIncident</code> — ServiceNow incidents linked to transfers</li>
+<li><code>NodeHealth</code> — Cluster node metrics (CPU, memory, disk, queue, cert expiry)</li>
+<li><code>AnomalyScore</code> — ML anomaly detection results</li>
+<li><code>FailurePrediction</code> — XGBoost failure probability + risk factors</li>
+<li><code>RootCauseCandidate</code> — Ranked RCA hypotheses with evidence</li>
+<li><code>Alert</code> — Unified alerts from ML, Axway, ServiceNow, runbooks</li>
+<li><code>MetricCard</code>, <code>ErrorCodeDistribution</code>, <code>AccountHealth</code> — Dashboard types</li>
+</ul>
+<h2>Mock Data (<code>src/lib/mock-data.ts</code>)</h2>
+<p>All development data lives here. Import types from <code>./types</code>. Add new mock data here, not in components.</p>
+<ul>
+<li>Cert expiry days in mock data drive failure predictions — update together</li>
+</ul>
+<h2>Styling Conventions</h2>
+<ul>
+<li><strong>Tailwind v4</strong> via <code>@tailwindcss/postcss</code> (postcss.config.mjs) — no tailwind.config.ts</li>
+<li><strong>Class merging</strong>: <code>cn()</code> from <code>src/lib/utils.ts</code> (clsx + tailwind-merge)</li>
+<li><strong>Status colors</strong>: Use <code>getStatusColor()</code>, <code>getSeverityColor()</code>, <code>getRiskColor()</code> from utils</li>
+<li><strong>Dark mode</strong>: <code>dark:</code> variants throughout; globals.css uses CSS variables</li>
+</ul>
+<h2>Component Patterns</h2>
+<ul>
+<li>Client components: <code>&#39;use client&#39;</code> directive at top</li>
+<li>Navigation: <code>usePathname()</code> from <code>next/navigation</code> for active state</li>
+<li>Icons: <code>lucide-react</code> (tree-shake imports)</li>
+<li>New pages: create <code>src/app/&lt;route&gt;/page.tsx</code>, add to <code>Sidebar.tsx</code></li>
+</ul>
+<h2>ESLint / TypeScript</h2>
+<ul>
+<li>Extends <code>eslint-config-next/core-web-vitals</code> + <code>eslint-config-next/typescript</code></li>
+<li>Strict TS: <code>strict: true</code>, <code>noEmit: true</code>, <code>isolatedModules: true</code></li>
+<li>Run <code>docker compose -f docker-compose.local.yml run --rm app npm run lint</code> before committing</li>
+</ul>
+<h2>Docker</h2>
+<ul>
+<li><strong>All commands run in Docker</strong> — see Key Commands. Don&#39;t run <code>npm</code>/<code>npx</code> on the host.</li>
+<li><strong>Dev</strong>: <code>docker-compose.local.yml</code> uses <code>Dockerfile.dev</code> with volume mounts; one-off commands via <code>docker compose -f docker-compose.local.yml run --rm app &lt;cmd&gt;</code></li>
+<li><strong>Prod</strong>: Multi-stage <code>Dockerfile</code> builds standalone output (<code>next.config.ts: output: &#39;standalone&#39;</code>), orchestrated by <code>docker-compose.prod.yml</code></li>
+<li>Env: <code>NODE_ENV=production</code>, <code>NEXT_TELEMETRY_DISABLED=1</code></li>
+</ul>
+<h2>Environment</h2>
+<ul>
+<li>Create <code>.env.local</code> for local dev (git-ignored): <code>NEXT_PUBLIC_API_URL</code>, <code>NEXT_PUBLIC_WS_URL</code></li>
+<li><code>.env*</code> ignored by git — add <code>.env.example</code> if needed</li>
+<li><strong>Agentic engine (all optional, mock-first defaults):</strong><ul>
+<li><code>MOCK_AXWAY</code> (default <code>true</code>) — use mock Axway data vs real Admin API</li>
+<li><code>ANTHROPIC_API_KEY</code> — empty ⇒ mock LLM; set ⇒ real Claude RCA/chat</li>
+<li><code>ANTHROPIC_MODEL</code> (default <code>claude-opus-4-8</code>), <code>AUTO_FIX_CONFIDENCE_THRESHOLD</code> (default <code>85</code>)</li>
+<li>Thresholds: <code>CERT_EXPIRY_WARN_DAYS</code>, <code>FAILURE_RATE_THRESHOLD</code>, <code>QUEUE_DEPTH_WARN</code>, <code>JVM_HEAP_WARN_PCT</code>, <code>DISK_WARN_PCT</code></li>
+</ul>
+</li>
+<li><strong>Enable real Claude mode:</strong> add the SDK to the image — <code>docker compose -f docker-compose.local.yml run --rm app npm install @anthropic-ai/sdk</code> — then set <code>ANTHROPIC_API_KEY</code>. The SDK is dynamically imported (<code>turbopackIgnore</code>) so it isn&#39;t required in mock mode.</li>
+</ul>
+<h2>Gotchas</h2>
+<ul>
+<li><strong>Next.js 16 has breaking changes</strong> — check <code>node_modules/next/dist/docs/</code> for current APIs</li>
+<li>No test framework configured yet</li>
+<li>Port 3000 in use: <code>lsof -ti:3000 | xargs kill -9</code>, or change the host port mapping in <code>docker-compose.local.yml</code> (e.g. <code>&quot;3001:3000&quot;</code>)</li>
+<li>Type errors after adding types: run <code>docker compose -f docker-compose.local.yml run --rm app npx tsc --noEmit</code></li>
+<li><code>next build</code> fails on <code>/_global-error</code> (<code>useContext</code> null): the dev <code>app</code> service sets <code>NODE_ENV=development</code> — build with <code>-e NODE_ENV=production</code> or use <code>docker-compose.prod.yml</code></li>
+<li>Docker build fails on <code>npm ci</code>: ensure <code>package-lock.json</code> is committed</li>
+<li>Tailwind styles not applying: verify <code>@import &quot;tailwindcss&quot;;</code> in globals.css, restart the container (<code>docker compose -f docker-compose.local.yml restart app</code>)</li>
+<li>Code changes not reflected in container: ensure volume mounts are intact; rebuild with <code>docker compose -f docker-compose.local.yml up --build</code></li>
+<li>After changing <code>package.json</code>: rebuild the image (<code>docker compose -f docker-compose.local.yml build app</code>) so deps reinstall in the container</li>
+<li>Axway ST API rate limits: throttle at &gt;60 req/min, batch queries in pages of 100</li>
+<li>OAuth2 tokens expire — implement automatic refresh with retry logic</li>
+</ul>
+
+<footer>Generated from Markdown by <code>scripts/build-docs.mjs</code> — run <code>docker compose -f docker-compose.local.yml run --rm app npm run docs</code> to rebuild.</footer>
+</div>
+</body>
+</html>

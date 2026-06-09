@@ -2,21 +2,41 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+This project runs entirely in Docker — no host Node.js install required, just Docker + Docker Compose.
+
+Start the development server (with hot reload):
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker compose -f docker-compose.local.yml up --build
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+You can start editing the page by modifying `src/app/page.tsx`. The source is volume-mounted into the container, so the page auto-updates as you edit.
+
+Run one-off commands inside the container:
+
+```bash
+docker compose -f docker-compose.local.yml run --rm app npm run lint         # Lint
+docker compose -f docker-compose.local.yml run --rm app npx tsc --noEmit     # Type-check
+docker compose -f docker-compose.local.yml run --rm app npm run build        # Production build
+```
+
+Stop the dev server:
+
+```bash
+docker compose -f docker-compose.local.yml down
+```
+
+For full dev/prod instructions, see [RUNBOOK.md](./RUNBOOK.md).
+
+## Documentation
+
+Browsable HTML versions of all Markdown docs live in [docs/](./docs/) — open `docs/index.html`. Regenerate them after editing any `.md`:
+
+```bash
+docker compose -f docker-compose.local.yml run --rm app npm run docs
+```
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
